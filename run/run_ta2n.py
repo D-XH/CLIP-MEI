@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import argparse
 import os
-import pickle
 import sys
 sys.path.append("..")
 sys.path.append(".") 
@@ -12,6 +11,7 @@ from torch.optim import lr_scheduler
 import torchvision
 import video_reader
 import random 
+# from torch.utils.tensorboard import SummaryWriter
 
 NUM_TEST_TASKS = 3000
 PRINT_FREQUENCY = 500
@@ -19,8 +19,13 @@ PRINT_FREQUENCY = 500
 # TEST_ITERS = 500
 
 def main():
+    torch.cuda.empty_cache()
     learner = Learner()
+    import time
+    s = time.time()
     learner.run()
+    e = time.time()
+    print((e-s)/360)
 
 
 class Learner:
@@ -34,6 +39,9 @@ class Learner:
         print_and_log(self.logfile, "Checkpoint Directory: %s\n" % self.checkpoint_dir)
 
         #self.writer = SummaryWriter()
+        ######################################################################################
+        # self.writer = SummaryWriter(comment="=>ta2n",flush_secs = 30)
+        ######################################################################################
         
         #gpu_device = 'cuda:0'
         gpu_device = 'cuda'
@@ -64,7 +72,7 @@ class Learner:
 
     def init_model(self):
         model = CNN(self.args)
-        # model = model.to(self.device)
+        model = model.to(self.device)
         if self.args.num_gpus > 1:
             model.distribute_model()
         return model
@@ -117,7 +125,7 @@ class Learner:
 
 
         parser.add_argument("--scratch", dest="scratch", default="/mnt/DATASET/lsy/", help="data root path")
-        parser.add_argument("--gpu_id", type=str, default=1, help="GPUs ID to run on")
+        parser.add_argument("--gpu_id", type=str, default=0, help="GPUs ID to run on")
         parser.add_argument("--num_gpus", type=int, default=1, help="Number of GPUs to split the ResNet over")
         parser.add_argument("--debug_loader", default=False, action="store_true", help="Load 1 vid per class for debugging")
        
@@ -146,13 +154,13 @@ class Learner:
             args.trans_linear_in_dim = 512
         
         if args.dataset == "ssv2":
-            args.traintestlist = os.path.join("/home/sjtu/data/splits/ssv2_OTAM/")
-            args.path = os.path.join(args.scratch, "SSv2/jpg")
-            args.classInd = '/home/sjtu/data/SSv2/labels/classInd.json'
+            args.traintestlist = os.path.join("/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_OTAM")
+            args.path = os.path.join(args.scratch, "sthv2/rawframes")
+            args.classInd = '/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_OTAM/classInd.json'
         if args.dataset == 'ssv2_cmn':
-            args.traintestlist = os.path.join("/home/sjtu/data/splits/ssv2_CMN/")
-            args.path = os.path.join(args.scratch, "SSv2/jpg")
-            args.classInd = '/home/sjtu/data/SSv2/labels/CMN_split/classInd_cmn.json'
+            args.traintestlist = os.path.join("/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_CMN")
+            args.path = os.path.join(args.scratch, "sthv2/rawframes")
+            args.classInd = '/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_CMN/classInd_cmn.json'
         elif args.dataset == 'hmdb':
             args.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
             args.path = os.path.join(args.scratch, "HMDB51/jpg")
@@ -206,10 +214,12 @@ class Learner:
                                             torch.Tensor(train_accuracies).mean().item()))
                     train_accuracies = []
                     losses = []
+                    # self.writer.add_scalar('loss/Train_loss', torch.Tensor(losses).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
+                    # self.writer.add_scalar('acc/Train_acc', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
 
                 if ((iteration + 1) % self.args.save_freq == 0) and (iteration + 1) != total_iterations:
                     #self.save_checkpoint(iteration + 1)
-                    self.save_checkpoint('last')
+                    self.save_checkpoint(iteration + 1, 'last')
 
 
                 if ((iteration + 1) % self.args.test_iters == 0) and (iteration + 1) != total_iterations:
@@ -217,7 +227,10 @@ class Learner:
                     if accuracy_dict[self.args.dataset]["accuracy"] > best_accuracies:
                         best_accuracies = accuracy_dict[self.args.dataset]["accuracy"]
                         print('Save best checkpoint in {} iter'.format(iteration))
-                        self.save_checkpoint('best')
+                        self.save_checkpoint(iteration + 1, 'best')
+
+                    # self.writer.add_scalar('acc/Test_acc', accuracy_dict[self.args.dataset]["accuracy"], iteration // self.args.test_iters)
+                    # self.writer.add_scalar('acc/Best_acc', best_accuracies, iteration // self.args.test_iters)
                     self.test_accuracies.print(self.logfile, accuracy_dict)
 
             # save the final model
@@ -293,13 +306,13 @@ class Learner:
         return images[permutation], labels[permutation]
 
 
-    def save_checkpoint(self, iteration):
+    def save_checkpoint(self, iteration, stat):
         d = {'iteration': iteration,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler': self.scheduler.state_dict()}
 
-        torch.save(d, os.path.join(self.checkpoint_dir, 'checkpoint_{}.pt'.format(iteration)))
+        torch.save(d, os.path.join(self.checkpoint_dir, 'checkpoint_{}.pt'.format(stat)))
         #torch.save(d, os.path.join(self.checkpoint_dir, 'checkpoint.pt'))
 
     def load_checkpoint(self):
@@ -313,4 +326,5 @@ class Learner:
 if __name__ == "__main__":
     import warnings
     warnings.filterwarnings('ignore')
+
     main()

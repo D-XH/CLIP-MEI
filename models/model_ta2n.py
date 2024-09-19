@@ -5,7 +5,6 @@ import time
 import random
 import torch.nn as nn
 from collections import OrderedDict
-from itertools import combinations 
 import torch.nn.functional as F
 from torch.autograd import Variable
 from models.OTAM import SoftDTW
@@ -117,13 +116,13 @@ class CNN(nn.Module):
         self.args = args
 
         if self.args.backbone == "resnet18":
-            self.resnet = models.resnet18(pretrained=True)
+            self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
             self.dim = 512
         elif self.args.backbone == "resnet34":
-            self.resnet = models.resnet34(pretrained=True)
+            self.resnet = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
             self.dim = 512
         elif self.args.backbone == "resnet50":
-            self.resnet = models.resnet50(pretrained=True)
+            self.resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
             self.dim = 2048
 
         last_layer_idx = -1

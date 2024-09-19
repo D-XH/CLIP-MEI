@@ -1,14 +1,14 @@
-CUDA_VISIBLE_DEVICES=0,1 python run/run_ta2n.py \
---dataset 'ucf' \
+CUDA_VISIBLE_DEVICES=0 python run/run_ta2n.py \
+--dataset 'ssv2_cmn' \
 --shot 1 \
---backbone 'resnet50' \
---scratch '/home/sjtu/data' \
+--backbone 'resnet34' \
+--scratch '/home/deng/exp/OpenDataLab___sthv2/raw/sthv2' \
 --metric 'cos' \
 --timewise \
---num_gpus 2 \
+--num_gpus 1 \
 --num_workers 8 \
 --seq_len 8 \
---query_per_class 5 \
+--query_per_class 1 \
 --img_size 224 \
---checkpoint_dir 'checkpoint/ucf/1shot/ta2n/baseline_ta2n' \
+--checkpoint_dir 'checkpoint/ssv2_cmn/1shot/ta2n/baseline_ta2n' \
 --test_iter 200 \
