@@ -1,3 +1,4 @@
 __pycache__/
 /run.log
 /runs/
+/checkpoint/
