@@ -11,7 +11,7 @@ from torch.optim import lr_scheduler
 import torchvision
 import video_reader
 import random 
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 NUM_TEST_TASKS = 3000
 PRINT_FREQUENCY = 500
@@ -19,7 +19,6 @@ PRINT_FREQUENCY = 500
 # TEST_ITERS = 500
 
 def main():
-    torch.cuda.empty_cache()
     learner = Learner()
     import time
     s = time.time()
@@ -40,7 +39,7 @@ class Learner:
 
         #self.writer = SummaryWriter()
         ######################################################################################
-        # self.writer = SummaryWriter(comment="=>ta2n",flush_secs = 30)
+        self.writer = SummaryWriter(comment="=>ta2n",flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
@@ -154,13 +153,13 @@ class Learner:
             args.trans_linear_in_dim = 512
         
         if args.dataset == "ssv2":
-            args.traintestlist = os.path.join("/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_OTAM")
-            args.path = os.path.join(args.scratch, "sthv2/rawframes")
-            args.classInd = '/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_OTAM/classInd.json'
+            args.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_OTAM")
+            args.path = os.path.join(args.scratch, "rawframes")
+            args.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_OTAM/classInd.json'
         if args.dataset == 'ssv2_cmn':
-            args.traintestlist = os.path.join("/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_CMN")
-            args.path = os.path.join(args.scratch, "sthv2/rawframes")
-            args.classInd = '/home/deng/exp/OpenDataLab___sthv2/raw/sthv2/TA2N/splits/ssv2_CMN/classInd_cmn.json'
+            args.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
+            args.path = os.path.join(args.scratch, "rawframes")
+            args.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_CMN/classInd_cmn.json'
         elif args.dataset == 'hmdb':
             args.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
             args.path = os.path.join(args.scratch, "HMDB51/jpg")
@@ -207,15 +206,19 @@ class Learner:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                 self.scheduler.step()
+
+
+                self.writer.add_scalar('loss/Train_loss[it]', task_loss, iteration + 1)
+                self.writer.add_scalar('acc/Train_acc[it]', task_accuracy, iteration + 1)
                 if (iteration + 1) % PRINT_FREQUENCY == 0:
                     # print training stats
                     print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
                                     .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
                                             torch.Tensor(train_accuracies).mean().item()))
+                    self.writer.add_scalar('loss/Train_loss[mean]', torch.Tensor(losses).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
+                    self.writer.add_scalar('acc/Train_acc[mean]', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
                     train_accuracies = []
                     losses = []
-                    # self.writer.add_scalar('loss/Train_loss', torch.Tensor(losses).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
-                    # self.writer.add_scalar('acc/Train_acc', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // PRINT_FREQUENCY)
 
                 if ((iteration + 1) % self.args.save_freq == 0) and (iteration + 1) != total_iterations:
                     #self.save_checkpoint(iteration + 1)
@@ -229,8 +232,8 @@ class Learner:
                         print('Save best checkpoint in {} iter'.format(iteration))
                         self.save_checkpoint(iteration + 1, 'best')
 
-                    # self.writer.add_scalar('acc/Test_acc', accuracy_dict[self.args.dataset]["accuracy"], iteration // self.args.test_iters)
-                    # self.writer.add_scalar('acc/Best_acc', best_accuracies, iteration // self.args.test_iters)
+                    self.writer.add_scalar('acc/Test_acc', accuracy_dict[self.args.dataset]["accuracy"], (iteration + 1) // self.args.test_iters)
+                    self.writer.add_scalar('acc/Best_acc', best_accuracies, (iteration + 1) // self.args.test_iters)
                     self.test_accuracies.print(self.logfile, accuracy_dict)
 
             # save the final model
