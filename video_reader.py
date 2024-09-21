@@ -55,28 +55,29 @@ class Split():
         return len(self.gt_a_list)
 
 class VideoDataset(torch.utils.data.Dataset):
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.get_item_counter = 0
 
-        self.data_dir = args.path
-        self.classInd = args.classInd
+        self.data_dir = cfg.path
+        self.classInd = cfg.classInd
         self.vid2cls = {}
-        self.seq_len = args.seq_len
+        self.seq_len = cfg.DATA.SEQ_LEN
         self.train = True
         self.tensor_transform = transforms.ToTensor()
         self.norm = None
-        self.img_size = args.img_size
-        self.img_norm = args.img_norm
+        self.img_size = cfg.DATA.IMG_SIZE
+        self.img_norm = cfg.DATA.IMG_NORM
 
-        self.annotation_path = args.traintestlist
-        #self.dataname = args.traintestlist.split()
+        self.annotation_path = cfg.traintestlist
+        #self.dataname = cfg.traintestlist.split()
 
         self.single_img = False
 
-        self.way=args.way
-        self.shot=args.shot
-        self.query_per_class=args.query_per_class
+        self.way=cfg.TRAIN.WAY
+        self.shot=cfg.TRAIN.SHOT
+        self.query_per_class=cfg.TRAIN.QUERY_PER_CLASS
+        self.query_per_class_test=cfg.TEST.QUERY_PER_CLASS
 
         self.train_split = Split()
         self.test_split = Split()
@@ -117,7 +118,7 @@ class VideoDataset(torch.utils.data.Dataset):
 
 
             
-            if self.args.dataset != 'ssv2' and self.args.dataset != 'ssv2_cmn':
+            if self.cfg.DATA.DATASET != 'ssv2' and self.cfg.DATA.DATASET != 'ssv2_cmn':
                 #print('Add Flip augmentation')
                 video_transform_list.append(RandomHorizontalFlip())
             else:
@@ -128,7 +129,7 @@ class VideoDataset(torch.utils.data.Dataset):
 
             video_test_list.append(CenterCrop(self.img_size))
 
-            # if self.args.dataset == 'kinetics':
+            # if self.cfg.DATA.DATASET == 'kinetics':
             #     print('Add data normalization for Kinetics')
             #     self.norm = GroupNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
@@ -142,7 +143,7 @@ class VideoDataset(torch.utils.data.Dataset):
         class_folders = os.listdir(self.data_dir)
         class_folders.sort()
         self.class_folders = class_folders
-        if self.args.dataset == 'ssv2' or self.args.dataset == 'ssv2_cmn':
+        if self.cfg.DATA.DATASET == 'ssv2' or self.cfg.DATA.DATASET == 'ssv2_cmn':
             for video_folder in class_folders:
                 #print(video_folder)
                 c = self.get_train_or_test_db(video_folder)
@@ -166,7 +167,7 @@ class VideoDataset(torch.utils.data.Dataset):
                 #print('len', len(video_folders))
                 video_folders.sort()
                 #print('video folders', video_folders)
-                if self.args.debug_loader:
+                if self.DATA.DEBUG_LOADER:
                     video_folders = video_folders[0:1]
                 for video_folder in video_folders:
                     #print(video_folder)
@@ -207,7 +208,10 @@ class VideoDataset(torch.utils.data.Dataset):
     def _select_fold(self):
         lists = {}
         for name in ["train", "test"]:
-            fname = "{}list{:02d}.txt".format(name, self.args.split)
+            if name == "test" and not self.cfg.TEST.ONLY_TEST:
+                fname = "{}list{:02d}.txt".format('val', self.cfg.DATA.SPLIT)
+            else:
+                fname = "{}list{:02d}.txt".format(name, self.cfg.DATA.SPLIT)
             f = os.path.join(self.annotation_path, fname)
             selected_files = []
             with open(f, "r") as fid:
@@ -217,7 +221,7 @@ class VideoDataset(torch.utils.data.Dataset):
                 data = [x.strip().split(" ")[0] for x in data] # class_name/classID
                 data = [os.path.splitext(os.path.split(x)[1])[0] for x in data] # classID
                 # print(data)
-                # if "kinetics" in self.args.path:
+                # if "kinetics" in self.cfg.path:
                 #    data = [x[0:11] for x in data] 
 
                 selected_files.extend(data)
@@ -311,9 +315,9 @@ class VideoDataset(torch.utils.data.Dataset):
  
 
         if self.train:
-            n_queries = self.args.query_per_class
+            n_queries = self.query_per_class
         else:
-            n_queries = self.args.query_per_class_test
+            n_queries = self.query_per_class_test
 
 
         support_set = []
@@ -325,14 +329,14 @@ class VideoDataset(torch.utils.data.Dataset):
 
         for bl, bc in enumerate(batch_classes):
             n_total = c.get_num_videos_for_class(bc)
-            idxs = random.sample([i for i in range(n_total)], self.args.shot + n_queries)
+            idxs = random.sample([i for i in range(n_total)], self.shot + n_queries)
             #print('n_total', n_total)
 
-            for idx in idxs[0:self.args.shot]:
+            for idx in idxs[0:self.shot]:
                 vid, vid_id = self.get_seq(bc, idx)
                 support_set.append(vid)
                 support_labels.append(bl)
-            for idx in idxs[self.args.shot:]:
+            for idx in idxs[self.shot:]:
                 vid, vid_id = self.get_seq(bc, idx)
                 target_set.append(vid)
                 target_labels.append(bl)
@@ -358,35 +362,35 @@ class VideoDataset(torch.utils.data.Dataset):
                 "target_labels":target_labels, "real_target_labels":real_target_labels, "batch_class_list": batch_classes}
 
 
-if __name__ == '__main__':
-    class ArgsObject(object):
-        def __init__(self):
-            # self.trans_linear_in_dim = 512
-            # self.trans_linear_out_dim = 128
-            self.dataset = 'hmdb'
-            #self.traintestlist = 'splits/ssv2_CMN/'
-            #self.path = '/mnt/data/sjtu/ssv2/frames'
-            self.traintestlist = 'splits/hmdb_ARN/'
-            self.path = '/home/sjtu/data/HMDB51/jpg'
-            # self.traintestlist = 'splits/kinetics_CMN/'
-            # self.path = '/home/sjtu/data/kinetics-FSL/'
-            self.split = 3
-            self.classInd = None
+# if __name__ == '__main__':
+#     class ArgsObject(object):
+#         def __init__(self):
+#             # self.trans_linear_in_dim = 512
+#             # self.trans_linear_out_dim = 128
+#             self.dataset = 'hmdb'
+#             #self.traintestlist = 'splits/ssv2_CMN/'
+#             #self.path = '/mnt/data/sjtu/ssv2/frames'
+#             self.traintestlist = 'splits/hmdb_ARN/'
+#             self.path = '/home/sjtu/data/HMDB51/jpg'
+#             # self.traintestlist = 'splits/kinetics_CMN/'
+#             # self.path = '/home/sjtu/data/kinetics-FSL/'
+#             self.split = 3
+#             self.classInd = None
 
-            self.way = 5
-            self.shot = 1
-            self.query_per_class = 5
-            self.query_per_class_test = 5
-            self.trans_dropout = 0.1
-            self.seq_len = 8 
-            self.img_size = 84
-            self.method = "resnet18"
-            self.num_gpus = 1
-            self.temp_set = [2,3]    
-            self.debug_loader = False
-            self.img_norm = None
+#             self.way = 5
+#             self.shot = 1
+#             self.query_per_class = 5
+#             self.query_per_class_test = 5
+#             self.trans_dropout = 0.1
+#             self.seq_len = 8 
+#             self.img_size = 84
+#             self.method = "resnet18"
+#             self.num_gpus = 1
+#             self.temp_set = [2,3]    
+#             self.debug_loader = False
+#             self.img_norm = None
 
-    args = ArgsObject()
-    dataloader = VideoDataset(args)
-    dataloader = iter(dataloader)
-    data = next(dataloader)
+#     args = ArgsObject()
+#     dataloader = VideoDataset(args)
+#     dataloader = iter(dataloader)
+#     data = next(dataloader)
