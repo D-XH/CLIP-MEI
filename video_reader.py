@@ -210,6 +210,8 @@ class VideoDataset(torch.utils.data.Dataset):
         for name in ["train", "test"]:
             if name == "test" and not self.cfg.TEST.ONLY_TEST:
                 fname = "{}list{:02d}.txt".format('val', self.cfg.DATA.SPLIT)
+            elif name == "train" and self.cfg.TEST.ONLY_TEST:
+                continue
             else:
                 fname = "{}list{:02d}.txt".format(name, self.cfg.DATA.SPLIT)
             f = os.path.join(self.annotation_path, fname)

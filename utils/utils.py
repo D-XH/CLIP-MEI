@@ -63,7 +63,7 @@ def verify_checkpoint_dir(cfg):
             print("Can't resume for checkpoint. Checkpoint file ({}) does not exist.".format(checkpoint_file), flush=True)
             sys.exit()
     elif test_mode:
-        if not os.path.exists(cfg.TEST.TEST_MODEL_PATH):
+        if not os.path.isfile(cfg.TEST.TEST_MODEL_PATH):
             print("Can't test. Checkpoint directory ({}) does not exist.".format(checkpoint_dir), flush=True)
             sys.exit()
     else:
@@ -102,7 +102,10 @@ def get_log_files(cfg):
     checkpoint_dir = cfg.CHECKPOINT.CHECKPOINT_DIR
     test_checkpoint_path = cfg.TEST.TEST_MODEL_PATH
     resume_checkpoint_path = os.path.join(checkpoint_dir, 'checkpoint_best.pt')
-    logfile_path = os.path.join(checkpoint_dir, 'log.txt')
+    if cfg.TEST.ONLY_TEST:
+        logfile_path = os.path.join('/'.join(test_checkpoint_path.split('/')[:-1]), 'log.txt')
+    else:
+        logfile_path = os.path.join(checkpoint_dir, 'log.txt')
     if os.path.isfile(logfile_path):
         logfile = open(logfile_path, "a", buffering=1)
     else:

@@ -18,14 +18,15 @@ class Learner:
         print_and_log(self.logfile, "Options: %s\n" % self.cfg)
         print_and_log(self.logfile, "Checkpoint Directory: %s\n" % self.checkpoint_dir)
         if cfg.TEST.ONLY_TEST:
-            print_and_log(self.logfile, "ONLY_TEsT::Checkpoint Path: %s\n" % self.test_checkpoint_path)
+            print_and_log(self.logfile, "ONLY_TEST::Checkpoint Path: %s\n" % self.test_checkpoint_path)
 
         self.train_episodes = cfg.TRAIN.TRAIN_EPISODES
         self.test_episodes = cfg.TEST.TEST_EPISODES
 
         #self.writer = SummaryWriter()
+        mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
-        self.writer = SummaryWriter(comment=f"=>{cfg.MODEL.NAME}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}",flush_secs = 30)
+        self.writer = SummaryWriter(comment=f"=>{cfg.MODEL.NAME}_{mode}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}",flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
@@ -184,30 +185,11 @@ class Learner:
         context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list = self.prepare_task(task_dict)
 
         model_dict = self.model(context_images, context_labels, target_images)
-        target_logits = model_dict['logits']
-
-        if self.cfg.MODEL.NAME == 'strm':
-            # Target logits after applying query-distance-based similarity metric on patch-level enriched features
-            target_logits_post_pat = model_dict['logits_post_pat'].to(self.device)
-
-            target_labels = target_labels.to(self.device)
-
-            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
-            task_loss_post_pat = self.loss(target_logits_post_pat, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
-
-            # Joint loss
-            task_loss = task_loss + 0.1*task_loss_post_pat
-
-            # Add the logits before computing the accuracy
-            target_logits = target_logits + 0.1*target_logits_post_pat
-        else:
-            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
-
-        task_accuracy = self.accuracy_fn(target_logits, target_labels)
-
+        
+        task_loss, task_acc = self._loss_and_acc(model_dict=model_dict, target_labels=target_labels)
         task_loss.backward(retain_graph=False)
 
-        return task_loss, task_accuracy
+        return task_loss, task_acc
 
     def test(self):
         self.model.eval()
@@ -227,16 +209,13 @@ class Learner:
                     context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list = self.prepare_task(task_dict)
                     model_dict = self.model(context_images, context_labels, target_images)
 
-                    target_logits = model_dict['logits']
-                    loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
-                    accuracy = self.accuracy_fn(target_logits, target_labels)
+                    task_loss, task_acc = self._loss_and_acc(model_dict=model_dict, target_labels=target_labels)
 
-                    losses.append(loss.item())
-                    accuracies.append(accuracy.item())
+                    losses.append(task_loss.item())
+                    accuracies.append(task_acc.item())
 
                     current_accuracy = np.array(accuracies).mean() * 100.0
                     print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration), end='\r',flush=True)
-                    del target_logits
 
                 accuracy = np.array(accuracies).mean() * 100.0
                 loss = np.array(losses).mean()
@@ -269,6 +248,33 @@ class Learner:
         permutation = np.random.permutation(images.shape[0])
         return images[permutation], labels[permutation]
 
+    def _loss_and_acc(self, model_dict, target_labels):
+        lmd = 0.1
+        target_logits = model_dict['logits']
+
+        if self.cfg.MODEL.NAME == 'strm':
+            # Target logits after applying query-distance-based similarity metric on patch-level enriched features
+            target_logits_post_pat = model_dict['logits_post_pat'].to(self.device)
+
+            target_labels = target_labels.to(self.device)
+
+            # Add the logits before computing the accuracy
+            target_logits = target_logits + lmd*target_logits_post_pat
+
+            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+            task_loss_post_pat = self.loss(target_logits_post_pat, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+
+            # Joint loss
+            task_loss = task_loss + lmd*task_loss_post_pat
+            task_accuracy = self.accuracy_fn(target_logits, target_labels)
+            del target_logits
+            del target_logits_post_pat
+        else:
+            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+            task_accuracy = self.accuracy_fn(target_logits, target_labels)
+            del target_logits
+        
+        return task_loss, task_accuracy
 
     def save_checkpoint(self, iteration, stat):
         d = {'iteration': iteration,
