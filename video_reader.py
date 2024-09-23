@@ -211,6 +211,7 @@ class VideoDataset(torch.utils.data.Dataset):
             if name == "test" and not self.cfg.TEST.ONLY_TEST:
                 fname = "{}list{:02d}.txt".format('val', self.cfg.DATA.SPLIT)
             elif name == "train" and self.cfg.TEST.ONLY_TEST:
+                lists[name] = []
                 continue
             else:
                 fname = "{}list{:02d}.txt".format(name, self.cfg.DATA.SPLIT)

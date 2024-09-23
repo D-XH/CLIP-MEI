@@ -97,13 +97,13 @@ class Learner:
         cfg.trans_linear_out_dim = cfg.MODEL.TRANS_LINEAR_OUT_DIM
 
         if cfg.DATA.DATASET == "ssv2":
-            cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ssv2_OTAM")
+            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_OTAM")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "rawframes")
-            cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_OTAM/classInd.json'
+            cfg.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_OTAM/classInd.json'
         if cfg.DATA.DATASET == 'ssv2_cmn':
-            cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ssv2_CMN")
+            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "rawframes")
-            cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_CMN/classInd_cmn.json'
+            cfg.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_CMN/classInd_cmn.json'
         elif cfg.DATA.DATASET == 'hmdb':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "HMDB51/jpg")
@@ -215,7 +215,9 @@ class Learner:
                     accuracies.append(task_acc.item())
 
                     current_accuracy = np.array(accuracies).mean() * 100.0
-                    print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration), end='\r',flush=True)
+                    if self.cfg.TEST.ONLY_TEST:
+                        self.writer.add_scalar(f'TEST/{self.cfg.MODEL.NAME}_acc', current_accuracy, iteration+1)
+                    print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration+1), end='\r',flush=True)
 
                 accuracy = np.array(accuracies).mean() * 100.0
                 loss = np.array(losses).mean()
@@ -250,7 +252,7 @@ class Learner:
 
     def _loss_and_acc(self, model_dict, target_labels):
         lmd = 0.1
-        target_logits = model_dict['logits']
+        target_logits = model_dict['logits'].to(self.device)
 
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
@@ -288,15 +290,14 @@ class Learner:
     def load_checkpoint(self):
         if self.cfg.TEST.ONLY_TEST:
             print('Load checkpoint from', self.test_checkpoint_path)
-            checkpoint = torch.load(self.test_checkpoint_path)
+            checkpoint = torch.load(self.test_checkpoint_path, map_location=self.device)
         else:
-            print('Load checkpoint from', self.resume_checkpoint_path)
+            print('Load checkpoint from', self.resume_checkpoint_path, map_location=self.device)
             checkpoint = torch.load(self.resume_checkpoint_path)
         self.start_iteration = checkpoint['iteration']
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
-
 
 if __name__ == "__main__":
     import warnings

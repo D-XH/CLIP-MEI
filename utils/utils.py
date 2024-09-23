@@ -75,6 +75,7 @@ def verify_checkpoint_dir(cfg):
                 ret = input('del exsited checkpoint dir and continue?(y or n)\n')
                 if ret == 'y':
                     os.system(f'rm -rf {checkpoint_dir}')
+                    os.makedirs(checkpoint_dir)
                     break
                 elif ret == 'n':
                     sys.exit()

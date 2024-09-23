@@ -59,7 +59,7 @@ class DistanceLoss(nn.Module):
         self.tuples_len = len(self.tuples) # 28 for tempset_2
 
         # nn.Linear(4096, 1024)
-        self.clsW = nn.Linear(self.cfg.trans_linear_in_dim * self.temporal_set_size, self.cfg.trans_linear_in_dim//2)
+        self.clsW = nn.Linear(self.cfg.trans_linear_in_dim * self.temporal_set_size, self.cfg.trans_linear_in_dim//2, device=cfg.DEVICE.DEVICE)
         self.relu = torch.nn.ReLU() 
 
 
