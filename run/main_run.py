@@ -4,7 +4,7 @@ import os
 
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
-import video_reader
+from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -35,7 +35,7 @@ class Learner:
         self.model = self.init_model()
         self.train_set, self.validation_set, self.test_set = self.init_data()
         
-        self.vd = video_reader.VideoDataset(self.cfg)
+        self.vd = VideoDataset(self.cfg)
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS)
         
         self.loss = loss
@@ -109,8 +109,8 @@ class Learner:
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "HMDB51/jpg")
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'ucf':
-            cfg.traintestlist = os.path.join("/home/sjtu/data/splits/ucf_ARN/")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "UCF101/jpg")
+            cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ucf_ARN/")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf101_s.zip")
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'kinetics':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/kinetics_CMN/")
@@ -126,6 +126,7 @@ class Learner:
             self.test_accuracies.print(self.logfile, accuracy_dict)
             print('Evaluation Done with', self.test_episodes, ' iteration')
         else:
+            print('Conduct Training:')
             best_accuracies = 0.0
             train_accuracies = []
             losses = []
@@ -292,8 +293,8 @@ class Learner:
             print('Load checkpoint from', self.test_checkpoint_path)
             checkpoint = torch.load(self.test_checkpoint_path, map_location=self.device)
         else:
-            print('Load checkpoint from', self.resume_checkpoint_path, map_location=self.device)
-            checkpoint = torch.load(self.resume_checkpoint_path)
+            print('Load checkpoint from', self.resume_checkpoint_path)
+            checkpoint = torch.load(self.resume_checkpoint_path, map_location=self.device)
         self.start_iteration = checkpoint['iteration']
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
