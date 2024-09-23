@@ -4,7 +4,7 @@ import os
 
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
-import video_reader
+from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -35,7 +35,7 @@ class Learner:
         self.model = self.init_model()
         self.train_set, self.validation_set, self.test_set = self.init_data()
         
-        self.vd = video_reader.VideoDataset(self.cfg)
+        self.vd = VideoDataset(self.cfg)
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS)
         
         self.loss = loss
@@ -109,8 +109,8 @@ class Learner:
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "HMDB51/jpg")
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'ucf':
-            cfg.traintestlist = os.path.join("/home/sjtu/data/splits/ucf_ARN/")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "UCF101/jpg")
+            cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ucf_ARN/")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf101_s.zip")
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'kinetics':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/kinetics_CMN/")
@@ -126,6 +126,7 @@ class Learner:
             self.test_accuracies.print(self.logfile, accuracy_dict)
             print('Evaluation Done with', self.test_episodes, ' iteration')
         else:
+            print('Conduct Training:')
             best_accuracies = 0.0
             train_accuracies = []
             losses = []
@@ -215,7 +216,9 @@ class Learner:
                     accuracies.append(task_acc.item())
 
                     current_accuracy = np.array(accuracies).mean() * 100.0
-                    print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration), end='\r',flush=True)
+                    if self.cfg.TEST.ONLY_TEST:
+                        self.writer.add_scalar(f'TEST/{self.cfg.MODEL.NAME}_acc', current_accuracy, iteration+1)
+                    print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration+1), end='\r',flush=True)
 
                 accuracy = np.array(accuracies).mean() * 100.0
                 loss = np.array(losses).mean()
@@ -250,7 +253,7 @@ class Learner:
 
     def _loss_and_acc(self, model_dict, target_labels):
         lmd = 0.1
-        target_logits = model_dict['logits']
+        target_logits = model_dict['logits'].to(self.device)
 
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
@@ -288,10 +291,10 @@ class Learner:
     def load_checkpoint(self):
         if self.cfg.TEST.ONLY_TEST:
             print('Load checkpoint from', self.test_checkpoint_path)
-            checkpoint = torch.load(self.test_checkpoint_path)
+            checkpoint = torch.load(self.test_checkpoint_path, map_location=self.device)
         else:
             print('Load checkpoint from', self.resume_checkpoint_path)
-            checkpoint = torch.load(self.resume_checkpoint_path)
+            checkpoint = torch.load(self.resume_checkpoint_path, map_location=self.device)
         self.start_iteration = checkpoint['iteration']
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

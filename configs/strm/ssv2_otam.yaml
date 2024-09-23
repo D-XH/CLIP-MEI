@@ -7,10 +7,10 @@ MODEL:
 
 TRAIN:
   WAY: 5
-  SHOT: 5
-  QUERY_PER_CLASS: 4
+  SHOT: 1
+  QUERY_PER_CLASS: 1
 
-  TRAINING_ITERATIONS: 75010
+  TRAIN_EPISODES: 75010
   VAL_FREQ: 200
   
 TEST:
@@ -26,7 +26,7 @@ DATA:
   NUM_WORKERS: 8
 
 CHECKPOINT:
-  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/trx'
+  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/strm'
   SAVE_FREQ: 10000
 
 SOLVER:
