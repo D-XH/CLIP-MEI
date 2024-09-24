@@ -47,8 +47,8 @@ class Learner:
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cfg.SOLVER.LR)
         self.test_accuracies = TestAccuracies(self.test_set)
         
-        #self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=self.args.sch, gamma=0.1)
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
+        self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
+        # self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
         
         self.start_iteration = 0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
@@ -98,11 +98,11 @@ class Learner:
 
         if cfg.DATA.DATASET == "ssv2":
             cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ssv2_OTAM")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "rawframes")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
             cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_OTAM/classInd.json'
         if cfg.DATA.DATASET == 'ssv2_cmn':
             cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ssv2_CMN")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "rawframes")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
             cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_CMN/classInd_cmn.json'
         elif cfg.DATA.DATASET == 'hmdb':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
@@ -110,7 +110,7 @@ class Learner:
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'ucf':
             cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ucf_ARN/")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf101_s.zip")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf_256x256q5_l8")
             cfg.classInd = None
         elif cfg.DATA.DATASET == 'kinetics':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/kinetics_CMN/")
