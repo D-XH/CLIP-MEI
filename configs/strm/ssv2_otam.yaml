@@ -18,6 +18,7 @@ TEST:
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
   TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/strm/checkpoint_ssv2_best.pt'
+
 DATA:
   DATASET: 'ssv2'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
   DATA_DIR: '/home/zhangbin/tx/datasets/ssv2'
