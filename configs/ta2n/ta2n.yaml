@@ -1,6 +1,7 @@
 MODEL: 
   NAME: 'ta2n'
   BACKBONE: 'resnet50'
+  SEED: 0
   TIMEWSIE: true
   DIST_NORM: false
   METRIC: 'cos'

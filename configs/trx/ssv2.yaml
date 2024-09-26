@@ -1,8 +1,8 @@
 MODEL: 
-  NAME: 'strm'
+  NAME: 'trx'
   BACKBONE: 'resnet34'          # ["resnet18", "resnet34", "resnet50"]
-  SEED: 3483
-  TEMP_SET: [2]              # cardinalities e.g. 2,3 is pairs and triples
+  SEED: 0
+  TEMP_SET: [2, 3]              # cardinalities e.g. 2,3 is pairs and triples
   TRANS_DROPOUT: 0.1            # Transformer dropout
   TRANS_LINEAR_OUT_DIM: 1152
 
@@ -15,10 +15,10 @@ TRAIN:
   VAL_FREQ: 200
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 3000
-  TEST_MODEL_PATH: ''
+  TEST_EPISODES: 10000
+  TEST_MODEL_PATH: 'checkpoint/ssv2_otam/1shot/trx/checkpoint_best.pt'
 
 DATA:
   DATASET: 'ssv2'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
@@ -28,7 +28,7 @@ DATA:
   NUM_WORKERS: 8
 
 CHECKPOINT:
-  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/strm'
+  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/trx'
   SAVE_FREQ: 10000
 
 SOLVER:

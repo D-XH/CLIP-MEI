@@ -1,2 +1,2 @@
 CUDA_VISIBLE_DEVICES=0 python run/run.py \
---cfg ./configs/strm/ucf.yaml
+--cfg ./configs/trx/ucf.yaml

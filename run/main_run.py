@@ -1,11 +1,12 @@
 import torch
 import numpy as np
 import os
-
+import random
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
+
 
 
 class Learner:
@@ -32,9 +33,17 @@ class Learner:
         #gpu_device = 'cuda:0'
         gpu_device = cfg.DEVICE.DEVICE
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
+
+        print("Random Seed: ", cfg.MODEL.SEED)
+        np.random.seed(cfg.MODEL.SEED)
+        random.seed(cfg.MODEL.SEED)
+        torch.manual_seed(cfg.MODEL.SEED)
+        torch.cuda.manual_seed(cfg.MODEL.SEED)
+        torch.cuda.manual_seed_all(cfg.MODEL.SEED)
+        torch.backends.cudnn.deterministic = True
+
         self.model = self.init_model()
         self.train_set, self.validation_set, self.test_set = self.init_data()
-        
         self.vd = VideoDataset(self.cfg)
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS)
         
@@ -66,6 +75,8 @@ class Learner:
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
             model.distribute_model()
+        
+        print(f'inited model: {self.cfg.MODEL.NAME}\n')
         return model
 
     def init_data(self):
@@ -172,7 +183,7 @@ class Learner:
                     accuracy_dict = self.test()
                     if accuracy_dict[self.cfg.DATA.DATASET]["accuracy"] > best_accuracies:
                         best_accuracies = accuracy_dict[self.cfg.DATA.DATASET]["accuracy"]
-                        print('Save best checkpoint in {} iter'.format(iteration))
+                        print('Save best checkpoint in {} iter'.format(iteration + 1))
                         self.save_checkpoint(iteration + 1, 'best')
 
                     self.writer.add_scalar('loss/Test_loss', accuracy_dict[self.cfg.DATA.DATASET]["loss"], (iteration + 1) // self.cfg.TRAIN.VAL_FREQ)
@@ -217,7 +228,7 @@ class Learner:
 
                     current_accuracy = np.array(accuracies).mean() * 100.0
                     if self.cfg.TEST.ONLY_TEST:
-                        self.writer.add_scalar(f'TEST/{self.cfg.MODEL.NAME}_acc', current_accuracy, iteration+1)
+                        self.writer.add_scalar(f'TEST/{self.cfg.DATA.DATASET}/{self.cfg.MODEL.NAME}_acc', current_accuracy, iteration+1)
                     print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration+1), end='\r',flush=True)
 
                 accuracy = np.array(accuracies).mean() * 100.0
@@ -290,11 +301,11 @@ class Learner:
 
     def load_checkpoint(self):
         if self.cfg.TEST.ONLY_TEST:
-            print('Load checkpoint from', self.test_checkpoint_path)
             checkpoint = torch.load(self.test_checkpoint_path, map_location=self.device)
+            print(f'Load checkpoint from {self.test_checkpoint_path} ==> iter: [{checkpoint["iteration"]}]\n')
         else:
-            print('Load checkpoint from', self.resume_checkpoint_path)
             checkpoint = torch.load(self.resume_checkpoint_path, map_location=self.device)
+            print(f'Load checkpoint from {self.resume_checkpoint_path} ==> iter: [{checkpoint["iteration"]}]\n')
         self.start_iteration = checkpoint['iteration']
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

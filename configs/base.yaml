@@ -1,6 +1,7 @@
 MODEL:
   NAME: ''
   BACKBONE: 'resnet50'
+  SEED: 0
   METRIC: 'cos'
   DROPOUT: 0.5
 
