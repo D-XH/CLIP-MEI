@@ -280,35 +280,3 @@ class VideoDataset(torch.utils.data.Dataset):
 
         return {"support_set":support_set, "support_labels":support_labels, "target_set":target_set, \
                 "target_labels":target_labels, "real_target_labels":real_target_labels, "batch_class_list": batch_classes}
-# if __name__ == '__main__':
-#     class ArgsObject(object):
-#         def __init__(self):
-#             # self.trans_linear_in_dim = 512
-#             # self.trans_linear_out_dim = 128
-#             self.dataset = 'hmdb'
-#             #self.traintestlist = 'splits/ssv2_CMN/'
-#             #self.path = '/mnt/data/sjtu/ssv2/frames'
-#             self.traintestlist = 'splits/hmdb_ARN/'
-#             self.path = '/home/sjtu/data/HMDB51/jpg'
-#             # self.traintestlist = 'splits/kinetics_CMN/'
-#             # self.path = '/home/sjtu/data/kinetics-FSL/'
-#             self.split = 3
-#             self.classInd = None
-
-#             self.way = 5
-#             self.shot = 1
-#             self.query_per_class = 5
-#             self.query_per_class_test = 5
-#             self.trans_dropout = 0.1
-#             self.seq_len = 8 
-#             self.img_size = 84
-#             self.method = "resnet18"
-#             self.num_gpus = 1
-#             self.temp_set = [2,3]    
-#             self.debug_loader = False
-#             self.img_norm = None
-
-#     args = ArgsObject()
-#     dataloader = VideoDataset(args)
-#     dataloader = iter(dataloader)
-#     data = next(dataloader)

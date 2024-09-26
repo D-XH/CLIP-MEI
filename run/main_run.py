@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import os
 import random
+
+
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
@@ -34,6 +36,7 @@ class Learner:
         gpu_device = cfg.DEVICE.DEVICE
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
 
+        
         print("Random Seed: ", cfg.MODEL.SEED)
         np.random.seed(cfg.MODEL.SEED)
         random.seed(cfg.MODEL.SEED)
@@ -57,7 +60,7 @@ class Learner:
         self.test_accuracies = TestAccuracies(self.test_set)
         
         self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
-        # self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
+        #self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
         
         self.start_iteration = 0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
@@ -75,7 +78,7 @@ class Learner:
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
             model.distribute_model()
-        
+
         print(f'inited model: {self.cfg.MODEL.NAME}\n')
         return model
 
@@ -112,7 +115,7 @@ class Learner:
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
             cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_OTAM/classInd.json'
         if cfg.DATA.DATASET == 'ssv2_cmn':
-            cfg.traintestlist = os.path.join("/home/deng/exp/FSAR/splits/ssv2_CMN")
+            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
             cfg.classInd = '/home/deng/exp/FSAR/splits/ssv2_CMN/classInd_cmn.json'
         elif cfg.DATA.DATASET == 'hmdb':
@@ -310,7 +313,6 @@ class Learner:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
-
 
 if __name__ == "__main__":
     import warnings

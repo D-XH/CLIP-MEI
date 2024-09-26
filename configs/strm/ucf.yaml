@@ -12,17 +12,17 @@ TRAIN:
   QUERY_PER_CLASS: 1
 
   TRAIN_EPISODES: 20010
-  VAL_FREQ: 200
+  VAL_FREQ: 10000
   
 TEST:
   ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 3000
-  TEST_MODEL_PATH: ''
+  TEST_EPISODES: 5000
+  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/strm/checkpoint_ucf_1shot_last.pt'
 
 DATA:
   DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
-  DATA_DIR: '/home/deng/exp/datasets/'
+  DATA_DIR: '/home/zhangbin/tx/datasets/'
   SEQ_LEN: 8
   IMG_SIZE: 224
   NUM_WORKERS: 8

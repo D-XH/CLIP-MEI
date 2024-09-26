@@ -3,3 +3,4 @@ __pycache__/
 /run.log
 /runs/
 /checkpoint/
+/test_ckp/
