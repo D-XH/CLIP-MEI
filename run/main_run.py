@@ -27,7 +27,7 @@ class Learner:
         #self.writer = SummaryWriter()
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
-        self.writer = SummaryWriter(comment=f"=>{cfg.MODEL.NAME}_{mode}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}",flush_secs = 30)
+        self.writer = SummaryWriter(comment=f"=>{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}",flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
@@ -57,8 +57,8 @@ class Learner:
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cfg.SOLVER.LR)
         self.test_accuracies = TestAccuracies(self.test_set)
         
-        self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
-        #self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
+        #self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
         
         self.start_iteration = 0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
