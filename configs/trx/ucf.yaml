@@ -11,11 +11,11 @@ TRAIN:
   SHOT: 1
   QUERY_PER_CLASS: 1
 
-  TRAIN_EPISODES: 75010
+  TRAIN_EPISODES: 20010
   VAL_FREQ: 200
   
 TEST:
-  ONLY_TEST: true
+  ONLY_TEST: false
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
   TEST_MODEL_PATH: 'checkpoint/ssv2_otam/1shot/trx/checkpoint_best.pt'

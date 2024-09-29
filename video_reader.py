@@ -145,9 +145,9 @@ class VideoDataset(torch.utils.data.Dataset):
                     c.add_vid(imgs_path, class_id)
         print("loaded {}".format(self.data_dir))
         if self.only_test:
-            print("test: {}".format(len(self.test_split)))
+            print("test: {} / {}".format(len(self.test_split), len(self.test_split.get_unique_classes())))
         else:
-            print("train: {}, test: {}".format(len(self.train_split), len(self.test_split)))
+            print("train: {} / {}, test: {} / {}".format(len(self.train_split), len(self.train_split.get_unique_classes()), len(self.test_split), len(self.test_split.get_unique_classes())))
 
     def get_train_or_test_db(self, split=None):
         if split is None:

@@ -2,7 +2,7 @@ MODEL:
   NAME: 'ta2n'
   BACKBONE: 'resnet50'
   SEED: 0
-  TIMEWSIE: true
+  TIMEWISE: true
   DIST_NORM: false
   METRIC: 'cos'
   DROPOUT: 0.5
@@ -16,7 +16,7 @@ TRAIN:
 
 TEST:
   ONLY_TEST: false
-  QUERY_PER_CLASS_TEST: 1
+  QUERY_PER_CLASS: 1
 
 DATA:
   DATASETS: 'ssv2'

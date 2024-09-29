@@ -4,6 +4,7 @@ MODEL:
   SEED: 0
   METRIC: 'cos'
   DROPOUT: 0.5
+  TRANS_LINEAR_OUT_DIM: 1152
 
 DEVICE:
   DEVICE: 'cuda'

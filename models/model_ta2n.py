@@ -140,7 +140,7 @@ class CNN(nn.Module):
         context_features = context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, self.dim, 7, 7).transpose(1,2)
         target_features = self.resnet(target_images)
         target_features = self.dropout(target_features)
-        target_features = target_features.reshape(-1, self.cfg.SEQ_LEN, self.dim, 7, 7).transpose(1,2)
+        target_features = target_features.reshape(-1, self.cfg.DATA.SEQ_LEN, self.dim, 7, 7).transpose(1,2)
         dim = int(context_features.shape[1])
         
         aligned_pair, offset = self.align(context_features, target_features)
