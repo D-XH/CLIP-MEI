@@ -133,6 +133,7 @@ class VideoDataset(torch.utils.data.Dataset):
                     imgs = os.listdir(vid_path)
                     if len(imgs) < self.seq_len:
                         continue
+                    imgs.sort()
                     imgs_path = [os.path.join(vid_path, img) for img in imgs]
                     imgs_path.sort()
                     if self.cfg.DATA.DATASET == 'ssv2' or self.cfg.DATA.DATASET == 'ssv2_cmn':

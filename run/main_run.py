@@ -214,7 +214,7 @@ class Learner:
                     context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
                     model_dict = self.model(context_images, context_labels, target_images)
 
-                    task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels)
+                    task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels, mode='test')
 
                     losses.append(task_loss.item())
                     accuracies.append(task_acc.item())
@@ -258,16 +258,14 @@ class Learner:
         permutation = np.random.permutation(images.shape[0])
         return images[permutation], labels[permutation]
 
-    def _loss_and_acc(self, model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels):
+    def _loss_and_acc(self, model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels, mode='train'):
         lmd = 0.1
         model_dict = {k: v.to(self.device) for k,v in model_dict.items()}
-        target_logits = model_dict['logits'].to(self.device)
+        target_logits = model_dict['logits']
 
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
-            target_logits_post_pat = model_dict['logits_post_pat'].to(self.device)
-
-            target_labels = target_labels.to(self.device)
+            target_logits_post_pat = model_dict['logits_post_pat']
 
             # Add the logits before computing the accuracy
             target_logits = target_logits + lmd*target_logits_post_pat
@@ -278,11 +276,13 @@ class Learner:
             # Joint loss
             task_loss = task_loss + lmd*task_loss_post_pat
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
-            del target_logits
-            del target_logits_post_pat
+            if mode == 'test':
+                del target_logits
+                del target_logits_post_pat
         elif self.cfg.MODEL.NAME == 'molo':
-            if self.cfg.TEST.ONLY_TEST:
+            if mode == 'test':
                 task_loss = F.cross_entropy(model_dict["logits"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH
+                del target_logits
             else:
                 task_loss =  (F.cross_entropy(model_dict["logits"], target_labels) \
                       + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * F.cross_entropy(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long())) /self.cfg.TRAIN.TASKS_PER_BATCH \
@@ -292,11 +292,12 @@ class Learner:
                                     + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_q2s_motion"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                         + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
-            del target_logits
+            
         else:
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
-            del target_logits
+            if mode == 'test':
+                del target_logits
         
         return task_loss, task_accuracy
 
