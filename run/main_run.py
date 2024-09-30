@@ -2,11 +2,13 @@ import torch
 import numpy as np
 import os
 import random
+import torch.nn.functional as F
 
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
+
 
 
 class Learner:
@@ -33,6 +35,7 @@ class Learner:
         #gpu_device = 'cuda:0'
         gpu_device = cfg.DEVICE.DEVICE
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
+
         
         print("Random Seed: ", cfg.MODEL.SEED)
         np.random.seed(cfg.MODEL.SEED)
@@ -43,8 +46,6 @@ class Learner:
         torch.backends.cudnn.deterministic = True
 
         self.model = self.init_model()
-        self.train_set, self.validation_set, self.test_set = self.init_data()
-        
         self.vd = VideoDataset(self.cfg)
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS)
         
@@ -55,10 +56,10 @@ class Learner:
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg.SOLVER.LR)
         elif self.cfg.SOLVER.OPTIM_METHOD == "sgd":
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cfg.SOLVER.LR)
-        self.test_accuracies = TestAccuracies(self.test_set)
+        self.test_accuracies = TestAccuracies([self.cfg.DATA.DATASET])
         
-        #self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
+        self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
+        # self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
         
         self.start_iteration = 0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
@@ -72,19 +73,16 @@ class Learner:
             from models.model_ta2n import CNN
         elif self.cfg.MODEL.NAME == 'strm':
             from models.model_strm import CNN_STRM as CNN
+        elif self.cfg.MODEL.NAME == 'molo':
+            from models.model_molo import CNN_BiMHM_MoLo as CNN
         model = CNN(self.cfg)
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
             model.distribute_model()
+
         print(f'inited model: {self.cfg.MODEL.NAME}\n')
         return model
 
-    def init_data(self):
-        train_set = [self.cfg.DATA.DATASET]
-        validation_set = [self.cfg.DATA.DATASET]
-        test_set = [self.cfg.DATA.DATASET]
-
-        return train_set, validation_set, test_set
 
     """
     Command line parser
@@ -110,23 +108,18 @@ class Learner:
         if cfg.DATA.DATASET == "ssv2":
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_OTAM")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
-            cfg.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_OTAM/classInd.json'
         if cfg.DATA.DATASET == 'ssv2_cmn':
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
-            cfg.classInd = '/home/zhangbin/tx/FSAR/splits/ssv2_CMN/classInd_cmn.json'
         elif cfg.DATA.DATASET == 'hmdb':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "HMDB51/jpg")
-            cfg.classInd = None
         elif cfg.DATA.DATASET == 'ucf':
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ucf_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf_256x256q5_l8")
-            cfg.classInd = None
         elif cfg.DATA.DATASET == 'kinetics':
             cfg.traintestlist = os.path.join("/home/sjtu/data/splits/kinetics_CMN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "kinetics/Kinetics_frames")
-            cfg.classInd = None
 
         return cfg
 
@@ -194,11 +187,11 @@ class Learner:
         self.logfile.close()
 
     def train_task(self, task_dict):
-        context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list = self.prepare_task(task_dict)
+        context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
 
         model_dict = self.model(context_images, context_labels, target_images)
         
-        task_loss, task_acc = self._loss_and_acc(model_dict=model_dict, target_labels=target_labels)
+        task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels)
         task_loss.backward(retain_graph=False)
 
         return task_loss, task_acc
@@ -218,10 +211,10 @@ class Learner:
                         break
                     iteration += 1
 
-                    context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list = self.prepare_task(task_dict)
+                    context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
                     model_dict = self.model(context_images, context_labels, target_images)
 
-                    task_loss, task_acc = self._loss_and_acc(model_dict=model_dict, target_labels=target_labels)
+                    task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels)
 
                     losses.append(task_loss.item())
                     accuracies.append(task_acc.item())
@@ -244,6 +237,7 @@ class Learner:
     def prepare_task(self, task_dict, images_to_device = True):
         context_images, context_labels = task_dict['support_set'][0], task_dict['support_labels'][0]
         target_images, target_labels = task_dict['target_set'][0], task_dict['target_labels'][0]
+        real_support_labels = task_dict['real_support_labels'][0]
         real_target_labels = task_dict['real_target_labels'][0]
         batch_class_list = task_dict['batch_class_list'][0]
 
@@ -252,8 +246,10 @@ class Learner:
             target_images = target_images.to(self.device)
         context_labels = context_labels.to(self.device)
         target_labels = target_labels.type(torch.LongTensor).to(self.device)
+        real_target_labels = real_target_labels.to(self.device)
+        real_support_labels = real_support_labels.to(self.device)
 
-        return context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list  
+        return context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels  
 
     def shuffle(self, images, labels):
         """
@@ -262,8 +258,9 @@ class Learner:
         permutation = np.random.permutation(images.shape[0])
         return images[permutation], labels[permutation]
 
-    def _loss_and_acc(self, model_dict, target_labels):
+    def _loss_and_acc(self, model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels):
         lmd = 0.1
+        model_dict = {k: v.to(self.device) for k,v in model_dict.items()}
         target_logits = model_dict['logits'].to(self.device)
 
         if self.cfg.MODEL.NAME == 'strm':
@@ -283,6 +280,19 @@ class Learner:
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
             del target_logits
             del target_logits_post_pat
+        elif self.cfg.MODEL.NAME == 'molo':
+            if self.cfg.TEST.ONLY_TEST:
+                task_loss = F.cross_entropy(model_dict["logits"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH
+            else:
+                task_loss =  (F.cross_entropy(model_dict["logits"], target_labels) \
+                      + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * F.cross_entropy(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long())) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_s2q"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                            + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_q2s"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                                + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_s2q_motion"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                                    + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_q2s_motion"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                                        + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
+            task_accuracy = self.accuracy_fn(target_logits, target_labels)
+            del target_logits
         else:
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
             task_accuracy = self.accuracy_fn(target_logits, target_labels)

@@ -257,15 +257,16 @@ class VideoDataset(torch.utils.data.Dataset):
                 vid, vid_id = self.get_seq(bc, idx)
                 support_set.append(vid)
                 support_labels.append(bl)
+                real_support_labels.append(bc)
             for idx in idxs[self.shot:]:
                 vid, vid_id = self.get_seq(bc, idx)
                 target_set.append(vid)
                 target_labels.append(bl)
                 real_target_labels.append(bc)
 
-        s = list(zip(support_set, support_labels))
+        s = list(zip(support_set, support_labels, real_support_labels))
         random.shuffle(s)
-        support_set, support_labels = zip(*s)
+        support_set, support_labels, real_support_labels = zip(*s)
 
         t = list(zip(target_set, target_labels, real_target_labels))
         random.shuffle(t)
@@ -275,8 +276,9 @@ class VideoDataset(torch.utils.data.Dataset):
         target_set = torch.cat(target_set)
         support_labels = torch.FloatTensor(support_labels)
         target_labels = torch.FloatTensor(target_labels)
+        real_support_labels = torch.FloatTensor(real_support_labels)
         real_target_labels = torch.FloatTensor(real_target_labels)
         batch_classes = torch.FloatTensor(batch_classes)
 
         return {"support_set":support_set, "support_labels":support_labels, "target_set":target_set, \
-                "target_labels":target_labels, "real_target_labels":real_target_labels, "batch_class_list": batch_classes}
+                "target_labels":target_labels, "real_target_labels":real_target_labels, "batch_class_list": batch_classes, "real_support_labels":real_support_labels}

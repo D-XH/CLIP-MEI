@@ -1,13 +1,15 @@
 MODEL: 
   NAME: 'strm'
   BACKBONE: 'resnet50'          # ["resnet18", "resnet34", "resnet50"]
+  SEED: 3483
+
   TEMP_SET: [2]              # cardinalities e.g. 2,3 is pairs and triples
   TRANS_DROPOUT: 0.1            # Transformer dropout
   TRANS_LINEAR_OUT_DIM: 1152
 
 TRAIN:
   WAY: 5
-  SHOT: 5
+  SHOT: 1
   QUERY_PER_CLASS: 4
 
   TRAIN_EPISODES: 75010
