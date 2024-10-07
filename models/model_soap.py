@@ -176,19 +176,24 @@ class SOAP(nn.Module):
     def __init__(self, cfg):
         super(SOAP, self).__init__()
 
-        self.conv_st = nn.Conv3d(1, 1, 3, 1, 1, bias=False)
-        self.conv_ch1 = nn.Conv2d(3, 16, 1, bias=False)
-        self.conv_ch2 = nn.Conv2d(16, 3, 1, bias=False)
+        self.cr = cfg.MODEL.cr
+        f_cnt = 0
+        self.hmem_ls = []
 
-        self.conv_ch_1d = nn.Conv2d(16, 16, (3, 1), 1, (1, 0))
-        self.hm_lin = nn.Linear(34, 8)
+        for T in cfg.MODEL.O:
+            f_cnt += T * (cfg.DATA.SEQ_LEN - T)
+            self.hmem_ls.append(HMEM(T))
+        self.f_cnt = f_cnt
+        self.conv_st = nn.Conv3d(1, 1, 3, 1, 1, bias=False)
+        self.conv_ch1 = nn.Conv2d(3, self.cr, 1, bias=False)
+        self.conv_ch2 = nn.Conv2d(self.cr, 3, 1, bias=False)
+
+        self.conv_ch_1d = nn.Conv2d(self.cr, self.cr, (3, 1), 1, (1, 0))
+        self.hm_lin = nn.Linear(f_cnt, cfg.DATA.SEQ_LEN)
 
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.sig = nn.Sigmoid()
 
-        self.hmem_ls = []
-        for T in cfg.MODEL.O:
-            self.hmem_ls.append(HMEM(T))
 
 
     def forward(self, su, qu):
@@ -206,20 +211,20 @@ class SOAP(nn.Module):
         # CWEM
         f_s = self.avgpool(su).reshape(-1, C, 1, 1)  # (200, 3, 1, 1)
         f_q = self.avgpool(qu).reshape(-1, C, 1, 1)  # (160, 3, 1, 1)
-        f_s = self.conv_ch1(f_s).reshape(sn, T, 16, 1, 1).squeeze(-1).transpose(1, 2)  # (25, 16, 8, 1)
-        f_q = self.conv_ch1(f_q).reshape(qn, T, 16, 1, 1).squeeze(-1).transpose(1, 2)  # (20, 16, 8, 1)
+        f_s = self.conv_ch1(f_s).reshape(sn, T, self.cr, 1, 1).squeeze(-1).transpose(1, 2)  # (25, 16, 8, 1)
+        f_q = self.conv_ch1(f_q).reshape(qn, T, self.cr, 1, 1).squeeze(-1).transpose(1, 2)  # (20, 16, 8, 1)
         f_s = self.conv_ch_1d(f_s).transpose(1, 2).unsqueeze(-1)  # (25, 8, 16, 1, 1)
         f_q = self.conv_ch_1d(f_q).transpose(1, 2).unsqueeze(-1)  # (20, 8, 16, 1, 1)
-        f_s = self.conv_ch2(f_s.reshape(-1, 16, 1, 1)).reshape(sn, T, C, 1, 1)    # (25, 8, 3, 1, 1)
-        f_q = self.conv_ch2(f_q.reshape(-1, 16, 1, 1)).reshape(qn, T, C, 1, 1)    # (20, 8, 3, 1, 1)
+        f_s = self.conv_ch2(f_s.reshape(-1, self.cr, 1, 1)).reshape(sn, T, C, 1, 1)    # (25, 8, 3, 1, 1)
+        f_q = self.conv_ch2(f_q.reshape(-1, self.cr, 1, 1)).reshape(qn, T, C, 1, 1)    # (20, 8, 3, 1, 1)
         cwem_s = self.sig(f_s) * su + su
         cwem_q = self.sig(f_q) * qu + qu
 
         # HMEM
         f_s = torch.concat([i(su) for i in self.hmem_ls], dim=1)    # (25, x, 3, 224, 224)
         f_q = torch.concat([i(qu) for i in self.hmem_ls], dim=1)    # (20, x, 3, 224, 224)
-        f_s = self.hm_lin(f_s.reshape(sn, 34, -1).transpose(-1, -2)).transpose(-1, -2).reshape(sn, 8, 3, 224, 224)
-        f_q = self.hm_lin(f_q.reshape(qn, 34, -1).transpose(-1, -2)).transpose(-1, -2).reshape(qn, 8, 3, 224, 224)
+        f_s = self.hm_lin(f_s.reshape(sn, self.f_cnt, -1).transpose(-1, -2)).transpose(-1, -2).reshape(sn, T, C, H, W)
+        f_q = self.hm_lin(f_q.reshape(qn, self.f_cnt, -1).transpose(-1, -2)).transpose(-1, -2).reshape(qn, T, C, H, W)
         hmem_s = self.sig(self.avgpool(f_s)) * su + su
         hmem_q = self.sig(self.avgpool(f_q)) * qu + qu
 
@@ -265,9 +270,10 @@ class CNN_SOAP(nn.Module):
             context_images: 200 x 3 x 224 x 224, target_images = 160 x 3 x 224 x 224
         '''
         #print(context_images.shape,target_images.shape)
-        su, qu = self.tripel_prior(context_images.reshape(5, 8, 3, 224, 224), target_images.reshape(20, 8, 3, 224, 224))
-        context_features = self.resnet(su.reshape(-1, 3, 224, 224)).squeeze() # 200 x 2048 A
-        target_features = self.resnet(qu.reshape(-1, 3, 224, 224)).squeeze() # 160 x 2048
+        _, C, H, W = context_images.shape
+        su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.seq_len, C, H, W))
+        context_features = self.resnet(su.reshape(-1, C, H, W)).squeeze() # 200 x 2048 
+        target_features = self.resnet(qu.reshape(-1, C, H, W)).squeeze() # 160 x 2048
 
         dim = int(context_features.shape[1])
         context_features = context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim)
