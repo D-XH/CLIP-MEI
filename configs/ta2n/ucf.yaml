@@ -1,6 +1,7 @@
 MODEL: 
   NAME: 'ta2n'
   BACKBONE: 'resnet50'
+  SEED: 10
   TIMEWISE: true
   DIST_NORM: false
   METRIC: 'cos'
@@ -11,8 +12,8 @@ TRAIN:
   WAY: 5
   SHOT: 1
   QUERY_PER_CLASS: 5
-  TRAIN_EPISODES: 75010
-  VAL_FREQ: 5000
+  TRAIN_EPISODES: 20010
+  VAL_FREQ: 2000
 
 TEST:
   ONLY_TEST: false
