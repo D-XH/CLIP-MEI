@@ -270,9 +270,7 @@ class Learner:
 
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
-            target_logits_post_pat = model_dict['logits_post_pat'].to(self.device)
-
-            target_labels = target_labels.to(self.device)
+            target_logits_post_pat = model_dict['logits_post_pat']
 
             # Add the logits before computing the accuracy
             target_logits = target_logits + lmd*target_logits_post_pat
@@ -283,8 +281,9 @@ class Learner:
             # Joint loss
             task_loss = task_loss + lmd*task_loss_post_pat
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
-            del target_logits
-            del target_logits_post_pat
+            if mode == 'test':
+                del target_logits
+                del target_logits_post_pat
         elif self.cfg.MODEL.NAME == 'molo':
             if mode == 'test':
                 task_loss = F.cross_entropy(model_dict["logits"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH
