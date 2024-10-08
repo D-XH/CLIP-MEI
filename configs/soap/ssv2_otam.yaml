@@ -5,6 +5,7 @@ MODEL:
   TRANS_DROPOUT: 0.1            # Transformer dropout
   TRANS_LINEAR_OUT_DIM: 1152
   O: [1,2,3]
+  cr: 16
 
 TRAIN:
   WAY: 5

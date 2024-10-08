@@ -271,7 +271,7 @@ class CNN_SOAP(nn.Module):
         '''
         #print(context_images.shape,target_images.shape)
         _, C, H, W = context_images.shape
-        su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.seq_len, C, H, W))
+        su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W))
         context_features = self.resnet(su.reshape(-1, C, H, W)).squeeze() # 200 x 2048 
         target_features = self.resnet(qu.reshape(-1, C, H, W)).squeeze() # 160 x 2048
 
