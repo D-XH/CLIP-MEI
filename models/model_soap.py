@@ -258,8 +258,7 @@ class CNN_SOAP(nn.Module):
         self.resnet = nn.Sequential(*list(resnet.children())[:last_layer_idx])
 
         self.tripel_prior = SOAP(cfg)
-        self.transformers = TemporalCrossTransformer(cfg)
-
+        self.transformers = nn.ModuleList([TemporalCrossTransformer(cfg, s) for s in cfg.MODEL.TEMP_SET]) 
 
     def forward(self, context_images, context_labels, target_images):
 
@@ -271,14 +270,18 @@ class CNN_SOAP(nn.Module):
         '''
         #print(context_images.shape,target_images.shape)
         _, C, H, W = context_images.shape
-        su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.seq_len, C, H, W))
+        su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W))
         context_features = self.resnet(su.reshape(-1, C, H, W)).squeeze() # 200 x 2048 
         target_features = self.resnet(qu.reshape(-1, C, H, W)).squeeze() # 160 x 2048
 
         dim = int(context_features.shape[1])
         context_features = context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim)
         target_features = target_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim)
-        sample_logits = self.transformers(context_features, context_labels, target_features)['logits']
+
+        all_logits = [t(context_features, context_labels, target_features)['logits'] for t in self.transformers]
+        all_logits = torch.stack(all_logits, dim=-1)
+        sample_logits = all_logits 
+        sample_logits = torch.mean(sample_logits, dim=[-1])
 
         return_dict = {'logits': split_first_dim_linear(sample_logits, [NUM_SAMPLES, target_features.shape[0]])}
         return return_dict

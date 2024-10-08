@@ -6,6 +6,7 @@ MODEL:
   TRANS_DROPOUT: 0.1            # Transformer dropout
   TRANS_LINEAR_OUT_DIM: 1152
   O: [1, 2, 3]
+  cr: 16
 
 TRAIN:
   WAY: 5
@@ -16,9 +17,9 @@ TRAIN:
   VAL_FREQ: 5000
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 3000
+  TEST_EPISODES: 10000
   TEST_MODEL_PATH: 'checkpoint/ucf/1shot/soap/checkpoint_best.pt'
 
 DATA:
