@@ -10,15 +10,15 @@ MODEL:
 TRAIN:
   WAY: 5
   SHOT: 1
-  QUERY_PER_CLASS: 4
+  QUERY_PER_CLASS: 5
 
   TRAIN_EPISODES: 75010
   VAL_FREQ: 5000
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 2000
+  TEST_EPISODES: 10000
   TEST_MODEL_PATH: 'checkpoint/ssv2_otam/1shot/soap/checkpoint_last.pt'
 
 DATA:
@@ -30,7 +30,7 @@ DATA:
 
 CHECKPOINT:
   CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/soap'
-  SAVE_FREQ: 5000
+  SAVE_FREQ: 75000
 
 SOLVER:
   OPTIM_METHOD: 'sgd'   # ["adam", "sgd"]
