@@ -12,7 +12,21 @@ import torchvision.models as models
 
 NUM_SAMPLES=1
 
-
+def cls_d(x):
+    # (5, 8, 2048)
+    prototypes = x.mean(1)
+    diff = prototypes.unsqueeze(1) - prototypes.unsqueeze(0)
+    # 计算平方和
+    square_diff = torch.sum(diff ** 2, dim=2)  # (5, 5)
+    # 防止数值不稳定，确保没有负数或零
+    square_diff = torch.clamp(square_diff, min=1e-12)
+    distances = torch.sqrt(square_diff)
+    # print(distances)
+    mask = torch.ones_like(distances)
+    torch.diagonal(mask)[:] = 0
+    distances = distances * mask
+    loss = -torch.mean(distances)
+    return loss
 
 def split_first_dim_linear(x, first_two_dims):
     """
@@ -275,6 +289,9 @@ class CNN_SOAP(nn.Module):
         target_features = self.resnet(qu.reshape(-1, C, H, W)).squeeze() # 160 x 2048
 
         dim = int(context_features.shape[1])
+
+        t_loss = cls_d(context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim))
+
         context_features = context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim)
         target_features = target_features.reshape(-1, self.cfg.DATA.SEQ_LEN, dim)
 
@@ -283,7 +300,7 @@ class CNN_SOAP(nn.Module):
         sample_logits = all_logits 
         sample_logits = torch.mean(sample_logits, dim=[-1])
 
-        return_dict = {'logits': split_first_dim_linear(sample_logits, [NUM_SAMPLES, target_features.shape[0]])}
+        return_dict = {'logits': split_first_dim_linear(sample_logits, [NUM_SAMPLES, target_features.shape[0]]), 't_loss':t_loss}
         return return_dict
 
     def distribute_model(self):
