@@ -11,7 +11,7 @@ TRAIN:
   QUERY_PER_CLASS: 4
 
   TRAIN_EPISODES: 75010
-  VAL_FREQ: 10000
+  VAL_FREQ: 5000
   
 TEST:
   ONLY_TEST: true
@@ -28,7 +28,7 @@ DATA:
 
 CHECKPOINT:
   CHECKPOINT_DIR: 'checkpoint/ssv2_otam/1shot/trx'
-  SAVE_FREQ: 5000
+  SAVE_FREQ: 75000
 
 SOLVER:
   OPTIM_METHOD: 'sgd'   # ["adam", "sgd"]
