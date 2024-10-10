@@ -39,7 +39,7 @@ class Learner:
         #gpu_device = 'cuda:0'
         gpu_device = cfg.DEVICE.DEVICE
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
-
+        torch.backends.cudnn.benchmark = True
         
         print("Random Seed: ", cfg.MODEL.SEED)
         np.random.seed(cfg.MODEL.SEED)
