@@ -228,7 +228,7 @@ class Learner:
 
                     current_accuracy = np.array(accuracies).mean() * 100.0
                     if self.cfg.TEST.ONLY_TEST:
-                        self.writer.add_scalar(f'TEST/{self.cfg.DATA.DATASET}/{self.cfg.MODEL.NAME}_acc', current_accuracy, iteration+1)
+                        self.writer.add_scalar(f'TEST/{self.cfg.DATA.DATASET}_{self.cfg.TRAIN.SHOT}-shot', current_accuracy, iteration+1)
                     print('current acc:{:0.3f} in iter:{:n}'.format(current_accuracy, iteration+1), end='\r',flush=True)
 
                 accuracy = np.array(accuracies).mean() * 100.0

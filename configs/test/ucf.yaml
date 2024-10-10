@@ -30,7 +30,7 @@ DATA:
 
 CHECKPOINT:
   CHECKPOINT_DIR: 'checkpoint/ucf/1shot/test'
-  SAVE_FREQ: 10000
+  SAVE_FREQ: 20000
 
 SOLVER:
   LR: 0.0001
