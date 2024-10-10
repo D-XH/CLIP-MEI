@@ -1,0 +1,38 @@
+MODEL: 
+  NAME: 'test'
+  BACKBONE: 'resnet50'          # ["resnet18", "resnet34", "resnet50"]
+  SEED: 666
+
+  ATT_DROP: 0.            # Transformer dropout
+  PROJ_DROP: 0.
+  HEAD_NUM: 8
+  EMBED_DIM: 256
+
+TRAIN:
+  WAY: 5
+  SHOT: 1
+  QUERY_PER_CLASS: 4
+
+  TRAIN_EPISODES: 20010
+  VAL_FREQ: 5000
+  
+TEST:
+  ONLY_TEST: false
+  QUERY_PER_CLASS: 1
+  TEST_EPISODES: 3000
+  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/test/ucf_1shot_best.pt'
+DATA:
+  DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
+  DATA_DIR: '/home/zhangbin/tx/datasets/'
+  SEQ_LEN: 8
+  IMG_SIZE: 224
+  NUM_WORKERS: 8
+
+CHECKPOINT:
+  CHECKPOINT_DIR: 'checkpoint/ucf/1shot/test'
+  SAVE_FREQ: 10000
+
+SOLVER:
+  LR: 0.0001
+  OPTIM_METHOD: 'sgd'   # ["adam", "sgd"]
+

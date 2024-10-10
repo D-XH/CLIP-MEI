@@ -81,6 +81,8 @@ class Learner:
             from models.model_molo import CNN_BiMHM_MoLo as CNN
         elif self.cfg.MODEL.NAME == 'soap':
             from models.model_soap import CNN_SOAP as CNN
+        elif self.cfg.MODEL.NAME == 'test':
+            from models.model_test import CNN as CNN
         model = CNN(self.cfg)
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
