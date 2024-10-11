@@ -25,7 +25,8 @@ def cls_d(x):
     mask = torch.ones_like(distances)
     torch.diagonal(mask)[:] = 0
     distances = distances * mask
-    loss = -torch.mean(distances)
+    lmd = nn.Parameter(torch.rand(1), requires_grad=True)
+    loss = torch.exp(-lmd * torch.mean(distances)**2)
     return loss
 
 def split_first_dim_linear(x, first_two_dims):

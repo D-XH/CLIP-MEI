@@ -3,7 +3,7 @@ import numpy as np
 import os
 import random
 import torch.nn.functional as F
-
+from datetime import datetime
 from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir, task_confusion
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
@@ -33,7 +33,8 @@ class Learner:
         #self.writer = SummaryWriter()
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
-        self.writer = SummaryWriter(comment=f"=>{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}",flush_secs = 30)
+        log_dir = './runs/'
+        self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}=>{datetime.now().strftime('%Y/%m/%d-%H:%M:%S')}"),flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
