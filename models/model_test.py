@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 # from utils.utils import split_first_dim_linear
+from utils.utils import split_first_dim_linear
 import torchvision.models as models
 import torch.nn.functional as F
 
@@ -329,7 +330,8 @@ class CNN(nn.Module):
             class_dists = torch.stack(class_dists).transpose(0, 1)  # (1, C)
             all_dists.append(class_dists)
         all_dists = torch.concat(all_dists, dim=0)
-        return_dict = {'logits': - all_dists}
+        # return_dict = {'logits': - all_dists}
+        return_dict = {'logits': split_first_dim_linear(all_dists, [1, qn])}
         return return_dict
     
     def distribute_model(self):
