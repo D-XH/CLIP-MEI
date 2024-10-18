@@ -311,8 +311,8 @@ class CNN(nn.Module):
         proto_q = qu.reshape(-1, self.seq_len, 3, 224, 224).mean(0)
         su = self.sa(su, proto_q) + su
 
-        su_f = self.resnet(su)  # (5, 1024, 14, 14)
-        qu_f = self.resnet(qu)  # (20, 1024, 14, 14)
+        su_f = self.resnet(su)  # (40, 1024, 14, 14)
+        qu_f = self.resnet(qu)  # (160, 1024, 14, 14)
 
         su_f, qu_f = self.mixer(su_f, qu_f, su_m, qu_m) # su:(20, 5, 8, 1024) qu:(20, 8, 1024)
         assert su_f.size(0) == qu_f.size(0)

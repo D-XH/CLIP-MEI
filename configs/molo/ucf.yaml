@@ -38,5 +38,7 @@ CHECKPOINT:
   SAVE_FREQ: 20000
 
 SOLVER:
-  OPTIM_METHOD: 'sgd'   # ["adam", "sgd"]
+  LR: 0.00005
+  WEIGHT_DECAY: 5e-4
+  OPTIM_METHOD: 'adam'   # ["adam", "sgd"]
 

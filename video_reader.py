@@ -267,7 +267,7 @@ class VideoDataset(torch.utils.data.Dataset):
                 real_target_labels.append(bc)
 
         s = list(zip(support_set, support_labels, real_support_labels))
-        #random.shuffle(s)
+        random.shuffle(s)
         support_set, support_labels, real_support_labels = zip(*s)
 
         t = list(zip(target_set, target_labels, real_target_labels))
