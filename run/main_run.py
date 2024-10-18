@@ -34,7 +34,7 @@ class Learner:
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
         log_dir = './runs/'
-        self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}=>{datetime.now().strftime('%Y/%m/%d-%H:%M:%S')}"),flush_secs = 30)
+        self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}=>{datetime.now().strftime('%Y|%m|%d-%H:%M:%S')}"),flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
@@ -52,15 +52,21 @@ class Learner:
 
         self.model = self.init_model()
         self.vd = VideoDataset(self.cfg)
-        self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS, worker_init_fn=getWIFN(cfg.MODEL.SEED))
+        self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS, shuffle=False, worker_init_fn=getWIFN(cfg.MODEL.SEED), pin_memory=True)
         
         self.loss = loss
         self.accuracy_fn = aggregate_accuracy
         
         if self.cfg.SOLVER.OPTIM_METHOD == "adam":
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg.SOLVER.LR)
+            self.optimizer = torch.optim.Adam(self.model.parameters(), 
+                                              lr=self.cfg.SOLVER.LR, 
+                                              betas=(0.5, 0.999), 
+                                              weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
         elif self.cfg.SOLVER.OPTIM_METHOD == "sgd":
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cfg.SOLVER.LR)
+            self.optimizer = torch.optim.SGD(self.model.parameters(), 
+                                             lr=self.cfg.SOLVER.LR, 
+                                             momentum=self.cfg.SOLVER.MOMENTUM, 
+                                             weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
         self.test_accuracies = TestAccuracies([self.cfg.DATA.DATASET])
         
         self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[self.cfg.SOLVER.LR_SCH], gamma=0.1)
@@ -82,8 +88,12 @@ class Learner:
             from models.model_molo import CNN_BiMHM_MoLo as CNN
         elif self.cfg.MODEL.NAME == 'soap':
             from models.model_soap import CNN_SOAP as CNN
+        elif self.cfg.MODEL.NAME == 'otam':
+            from models.model_otam import CNN_OTAM as CNN
         elif self.cfg.MODEL.NAME == 'test':
             from models.model_test import CNN as CNN
+        elif self.cfg.MODEL.NAME == 'raw':
+            from models.model_raw import CNN as CNN
         model = CNN(self.cfg)
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
@@ -165,11 +175,10 @@ class Learner:
 
                 self.writer.add_scalar('loss/Train_loss[it]', task_loss, iteration + 1)
                 self.writer.add_scalar('acc/Train_acc[it]', task_accuracy, iteration + 1)
+
                 if (iteration + 1) % self.cfg.TRAIN.PRINT_FREQ == 0:
                     # print training stats
-                    print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
-                                    .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
-                                            torch.Tensor(train_accuracies).mean().item()))
+                    print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'.format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(), torch.Tensor(train_accuracies).mean().item()))
                     self.writer.add_scalar('loss/Train_loss[mean]', torch.Tensor(losses).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     self.writer.add_scalar('acc/Train_acc[mean]', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     train_accuracies = []
@@ -289,15 +298,15 @@ class Learner:
                 del target_logits_post_pat
         elif self.cfg.MODEL.NAME == 'molo':
             if mode == 'test':
-                task_loss = F.cross_entropy(model_dict["logits"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH
+                task_loss = self.loss(target_logits.unsqueeze(0), target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
                 del target_logits
             else:
-                task_loss =  (F.cross_entropy(model_dict["logits"], target_labels) \
-                      + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * F.cross_entropy(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long())) /self.cfg.TRAIN.TASKS_PER_BATCH \
-                        + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_s2q"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
-                            + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_q2s"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
-                                + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_s2q_motion"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
-                                    + self.cfg.MODEL.USE_CONTRASTIVE_COFF * F.cross_entropy(model_dict["logits_q2s_motion"], target_labels) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                task_loss =  (self.loss(target_logits, target_labels, self.device)/ self.cfg.TRAIN.TASKS_PER_BATCH \
+                      + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * self.loss(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long(), self.device)) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                            + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                                + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                                    + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                         + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
         elif self.cfg.MODEL.NAME == 'soap':
