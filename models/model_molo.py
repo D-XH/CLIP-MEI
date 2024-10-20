@@ -518,8 +518,7 @@ class CNN_BiMHM_MoLo(CNN_FSHead):
             loss_recons = torch.tensor(0.)
 
         
-        return_dict = {'logits': - class_dists , 'class_logits': class_logits, "logits_s2q": -class_dists_s2q, "logits_q2s": -class_dists_q2s, "logits_s2q_motion": -class_dists_s2q_motion, "logits_q2s_motion": -class_dists_q2s_motion, "loss_recons": loss_recons,}
-        return_dict = {k:v.unsqueeze(0) for k,v in return_dict.items() if k != 'loss_recons'}
+        return_dict = {'logits': - class_dists.unsqueeze(0) , 'class_logits': class_logits.unsqueeze(0), "logits_s2q": -class_dists_s2q.unsqueeze(0), "logits_q2s": -class_dists_q2s.unsqueeze(0), "logits_s2q_motion": -class_dists_s2q_motion.unsqueeze(0), "logits_q2s_motion": -class_dists_q2s_motion.unsqueeze(0), "loss_recons": loss_recons,}
         return return_dict
 
     def loss(self, task_dict, model_dict):

@@ -1,3 +1,5 @@
+INFO: None
+
 MODEL:
   NAME: ''
   BACKBONE: 'resnet50'

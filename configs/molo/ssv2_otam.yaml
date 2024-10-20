@@ -1,7 +1,7 @@
 MODEL: 
   NAME: 'molo'
   BACKBONE: 'resnet50'          # ["resnet18", "resnet34", "resnet50"]
-  SEED: 18
+  SEED: 8
   USE_CLASSIFICATION: true
   USE_CLASSIFICATION_VALUE: 0.8
   USE_CONTRASTIVE: true
