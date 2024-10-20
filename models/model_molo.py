@@ -57,7 +57,7 @@ class CNN_FSHead(nn.Module):
             self.backbone = nn.Sequential(*list(backbone.children())[:last_layer_idx])
 
         elif self.args.MODEL.BACKBONE == "resnet50":
-            backbone = models.resnet50(pretrained=True)
+            backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
             self.backbone = nn.Sequential(*list(backbone.children())[:last_layer_idx])
 
     def get_feats(self, support_images, target_images):
@@ -516,9 +516,8 @@ class CNN_BiMHM_MoLo(CNN_FSHead):
             loss_recons = loss_recons.mean()  # [N, L], mean loss per patch
         else:
             loss_recons = torch.tensor(0.)
-
-        
         return_dict = {'logits': - class_dists.unsqueeze(0) , 'class_logits': class_logits.unsqueeze(0), "logits_s2q": -class_dists_s2q.unsqueeze(0), "logits_q2s": -class_dists_q2s.unsqueeze(0), "logits_s2q_motion": -class_dists_s2q_motion.unsqueeze(0), "logits_q2s_motion": -class_dists_q2s_motion.unsqueeze(0), "loss_recons": loss_recons,}
+        
         return return_dict
 
     def loss(self, task_dict, model_dict):

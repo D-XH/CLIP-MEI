@@ -12,10 +12,11 @@ TRAIN:
   VAL_FREQ: 5000
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
-  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/raw/checkpoint_ssv2_best.pt'
+  #TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/raw/checkpoint_ssv2_best.pt'
+  TEST_MODEL_PATH: 'checkpoint/ssv2_otam/1shot/raw/checkpoint_last.pt'
 
 DATA:
   DATASET: 'ssv2'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]

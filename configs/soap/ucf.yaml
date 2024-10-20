@@ -19,7 +19,7 @@ TRAIN:
 TEST:
   ONLY_TEST: false
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 2000
+  TEST_EPISODES: 3000
   TEST_MODEL_PATH: 'checkpoint/ucf/1shot/soap/checkpoint_best.pt'
 
 DATA:
