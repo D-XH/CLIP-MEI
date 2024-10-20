@@ -19,7 +19,7 @@ TEST:
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
   TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/strm/checkpoint_ucf.pt'
-  #TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/checkpoint/ucf/1shot/strm/checkpoint_last.pt'
+  #TEST_MODEL_PATH: 'checkpoint/ucf/1shot/strm/checkpoint_last.pt'
 DATA:
   DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
   DATA_DIR: '/home/zhangbin/tx/datasets/'
