@@ -31,9 +31,9 @@ class CNN(nn.Module):
         elif self.cfg.MODEL.BACKBONE == "resnet34":
             resnet = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
         elif self.cfg.MODEL.BACKBONE == "resnet50":
-            from myRes import resnet50
+            from myRes import resnet50_2
             # resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-            resnet = resnet50(weights=models.ResNet50_Weights.DEFAULT)
+            resnet = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
         self.ddd = True
 
         last_layer_idx = -1
