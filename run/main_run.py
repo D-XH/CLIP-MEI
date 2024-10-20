@@ -34,7 +34,7 @@ class Learner:
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
         log_dir = './runs/'
-        if cfg.INFO == None:
+        if cfg.INFO == '':
             info = f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}"
         else:
             info = f"{cfg.INFO}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}"

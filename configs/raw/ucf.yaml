@@ -1,4 +1,4 @@
-
+INFO: 'raw_+_newRes'
 MODEL:
   NAME: 'raw'
   BACKBONE: 'resnet50'          # ["resnet18", "resnet34", "resnet50"]
