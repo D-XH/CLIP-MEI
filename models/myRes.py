@@ -100,11 +100,18 @@ class gte(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.conv1 = nn.Conv3d(in_ch, in_ch*2, kernel_size=(3,1,1), stride=1, padding=(1,0,0), bias=False)
-        self.conv2 = nn.Conv3d(in_ch*2, in_ch, kernel_size=(3,1,1), stride=1, padding=(1,0,0))
+        self.conv2 = nn.Conv3d(in_ch*2, in_ch, kernel_size=(3,1,1), stride=1, padding=(1,0,0), bias=False)
         self.bn1 = nn.BatchNorm3d(in_ch*2)
         self.bn2 = nn.BatchNorm3d(in_ch)
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid = nn.Sigmoid()
+
+        nn.init.xavier_uniform_(self.conv1.weight)
+        nn.init.xavier_uniform_(self.conv2.weight)
+        nn.init.constant_(self.bn1.weight, 1)
+        nn.init.constant_(self.bn1.bias, 0)
+        nn.init.constant_(self.bn2.weight, 1)
+        nn.init.constant_(self.bn2.bias, 0)
 
     def forward(self, x):
         # (160, 64/g, 224, 224)
@@ -134,11 +141,18 @@ class lte(nn.Module):
         self.seq_len = seq_len
 
         self.conv1 = nn.Conv3d(in_ch, in_ch*2, kernel_size=(3,1,1), stride=1, padding=(1,0,0), bias=False)
-        self.conv2 = nn.Conv3d(in_ch*2, in_ch, kernel_size=(3,1,1), stride=1, padding=(2,0,0), dilation=(2,1,1))
+        self.conv2 = nn.Conv3d(in_ch*2, in_ch, kernel_size=(3,1,1), stride=1, padding=(2,0,0), dilation=(2,1,1), bias=False)
         self.bn1 = nn.BatchNorm3d(in_ch*2)
         self.bn2 = nn.BatchNorm3d(in_ch)
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid = nn.Sigmoid()
+
+        nn.init.xavier_uniform_(self.conv1.weight)
+        nn.init.xavier_uniform_(self.conv2.weight)
+        nn.init.constant_(self.bn1.weight, 1)
+        nn.init.constant_(self.bn1.bias, 0)
+        nn.init.constant_(self.bn2.weight, 1)
+        nn.init.constant_(self.bn2.bias, 0)
 
     def forward(self, x):
         # (160, 64/g, 224, 224)
@@ -172,4 +186,5 @@ if __name__ == '__main__':
     mm = nn.Sequential(*list(mm.children())[:-1])
     i = torch.rand(8,3,224,224)
     o = mm(i)
+    print(mm)
     print(o.shape)
