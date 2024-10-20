@@ -16,9 +16,9 @@ TRAIN:
   VAL_FREQ: 5000
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 3000
+  TEST_EPISODES: 10000
   TEST_MODEL_PATH: 'checkpoint/ucf/1shot/trx/checkpoint_best.pt'
 
 DATA:

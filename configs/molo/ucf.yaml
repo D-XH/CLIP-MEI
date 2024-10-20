@@ -15,15 +15,15 @@ TRAIN:
   WAY: 5
   SHOT: 1
   QUERY_PER_CLASS: 4
-  TASKS_PER_BATCH: 16
-  TRAIN_EPISODES: 20000
+  TASKS_PER_BATCH: 4
+  TRAIN_EPISODES: 20010
   VAL_FREQ: 5000
   
 TEST:
   ONLY_TEST: true
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
-  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/checkpoint/ucf/1shot/molo/checkpoint_best.pt'
+  TEST_MODEL_PATH: 'checkpoint/ucf/1shot/molo/checkpoint_best.pt'
 
 DATA:
   DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]

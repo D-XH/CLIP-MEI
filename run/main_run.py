@@ -298,7 +298,8 @@ class Learner:
                 del target_logits_post_pat
         elif self.cfg.MODEL.NAME == 'molo':
             if mode == 'test':
-                task_loss = self.loss(target_logits.unsqueeze(0), target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+                task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+                task_accuracy = self.accuracy_fn(target_logits, target_labels)
                 del target_logits
             else:
                 task_loss =  (self.loss(target_logits, target_labels, self.device)/ self.cfg.TRAIN.TASKS_PER_BATCH \
@@ -308,7 +309,7 @@ class Learner:
                                 + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                     + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                         + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
-            task_accuracy = self.accuracy_fn(target_logits, target_labels)
+                task_accuracy = self.accuracy_fn(target_logits, target_labels)
         elif self.cfg.MODEL.NAME == 'soap':
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH + model_dict['t_loss']
             task_accuracy = self.accuracy_fn(target_logits, target_labels)

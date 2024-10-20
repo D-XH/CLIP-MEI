@@ -15,9 +15,9 @@ TRAIN:
 TEST:
   ONLY_TEST: false
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 10000
-  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/raw/checkpoint_ucf.pt'
-  #TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/checkpoint/ucf/1shot/strm/checkpoint_last.pt'
+  TEST_EPISODES: 3000
+  #TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/raw/checkpoint_ucf.pt'
+  TEST_MODEL_PATH: 'checkpoint/ucf/1shot/raw/checkpoint_best.pt'
 
 DATA:
   DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
