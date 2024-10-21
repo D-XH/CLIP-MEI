@@ -247,27 +247,53 @@ class newResNet_2(nn.Module):
 class blk(nn.Module):
     def __init__(self, in_ch):
         super().__init__()
-        in_ch = in_ch // 2
+        in_ch = in_ch // 4
+        self.ce = ce(in_ch)
         self.lte = lte(in_ch)
         self.gte = gte(in_ch)
-        pass
+        self.se = se(in_ch)
+        
     def forward(self, x):
         # (160, 512, 224, 224)
         n, c, h, w = x.shape
         # print(x.shape)
-        f1 = self.gte(x[:,:c//2])
-        f2 = self.lte(x[:, c//2:])
-        x = torch.concat([f1, f2], dim=1)
+        print(x[:,:c//4].shape, x[:, c//4:c//2].shape, x[:, c//2:c*3//4].shape, x[:, c*3//4:].shape)
+        f1 = self.ce(x[:,:c//4])
+        f2 = self.gte(x[:, c//4:c//2])
+        f3 = self.lte(x[:, c//2:c*3//4])
+        f4 = self.se(x[:, c*3//4:])
+        print(f1.shape, f2.shape, f3.shape, f4.shape)
+        x = torch.concat([f1, f2, f3, f4], dim=1)
         return x
 
 class ce(nn.Module):
-    def __init__(self,):
-        pass
+    def __init__(self, in_ch, seq_len=8):
+        super().__init__()
+        self.seq_len = seq_len
+
+        self.avgpool = nn.AdaptiveAvgPool3d(1)
+        self.fc = nn.Conv3d(in_ch, in_ch, kernel_size=1, stride=1, padding=0)
+        self.bn = nn.BatchNorm3d(in_ch)
+        self.sigmoid = nn.Sigmoid()
+
+        nn.init.xavier_uniform_(self.fc.weight)
+        nn.init.constant_(self.bn.weight, 1)
+        nn.init.constant_(self.bn.bias, 0)
+
     def forward(self, x):
         # (160, 64/g, 224, 224)
         n, c, h, w = x.shape
+        x = x.reshape(-1, self.seq_len, c, h, w).transpose(1, 2)    # (20, 64/g, 8, 224, 224)
+        res = x
 
-        pass
+        a, b = x[:, :, :-1], x[:, :, 1:]
+        diff = b - a    # (20, 64/g, 7, 224, 224)
+        diff = F.pad(diff, (0,0,0,0,0,1), 'constant', 0)    # (20, 64/g, 8, 224, 224)
+        diff = self.avgpool(diff)   # (20, 64/g, 1, 1, 1)
+
+        x = self.fc(diff)
+        x = self.sigmoid(x) * res   # (20, 64/g, 8, 224, 224)
+        return x.transpose(1, 2).reshape(n, c, h, w)
 
 class gte(nn.Module):
     def __init__(self, in_ch, seq_len=8):
@@ -296,10 +322,10 @@ class gte(nn.Module):
         x = x.reshape(-1, self.seq_len, c, h, w).transpose(1, 2)    # (20, 64/g, 8, 224, 224)
         res = x
 
-        a, b = x[:, :-1], x[:, 1:]
+        a, b = x[:, :, :-1], x[:, :, 1:]
         diff = b - a    # (20, 64/g, 7, 224, 224)
-        diff = F.pad(diff.transpose(1, 2), (0,0,0,0,0,1), 'constant', 0)    # (20, 64/g, 8, 224, 224)
-        diff = self.avgpool(diff.transpose(1, 2))   # (20, 64/g, 8, 1, 1)
+        diff = F.pad(diff, (0,0,0,0,0,1), 'constant', 0)    # (20, 64/g, 8, 224, 224)
+        diff = self.avgpool(diff)   # (20, 64/g, 8, 1, 1)
         
         x = self.conv1(diff)
         x = self.bn1(x)
@@ -348,18 +374,44 @@ class lte(nn.Module):
         return x.transpose(1, 2).reshape(n, c, h, w)
 
 class se(nn.Module):
-    def __init__(self,):
-        pass
+    def __init__(self, in_ch, seq_len=8):
+        super().__init__()
+        self.seq_len = seq_len
+
+        self.conv1 = nn.Conv2d(in_ch, in_ch*2, kernel_size=3, stride=1, padding=2, dilation=2, bias=False)
+        self.conv2 = nn.Conv2d(in_ch*2, in_ch, kernel_size=3, stride=1, padding=2, dilation=2, bias=False)
+        self.bn1 = nn.BatchNorm2d(in_ch*2)
+        self.bn2 = nn.BatchNorm2d(in_ch)
+        self.relu = nn.ReLU(inplace=True)
+        self.sigmoid = nn.Sigmoid()
+        
+        nn.init.xavier_uniform_(self.conv1.weight)
+        nn.init.xavier_uniform_(self.conv2.weight)
+        nn.init.constant_(self.bn1.weight, 1)
+        nn.init.constant_(self.bn1.bias, 0)
+        nn.init.constant_(self.bn2.weight, 1)
+        nn.init.constant_(self.bn2.bias, 0)
+
     def forward(self, x):
         # (160, 64/g, 224, 224)
         n, c, h, w = x.shape
+        x = x.reshape(-1, self.seq_len, c, h, w).transpose(1, 2)    # (20, 64/g, 8, 224, 224)
+        res = x
 
-        pass
+        x = x.mean(2)   # (20, 64/g, 224, 224)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.sigmoid(x).unsqueeze(2) * res  # (20, 64/g, 8, 224, 224)
+        return x.transpose(1, 2).reshape(n, c, h, w)
 
 if __name__ == '__main__':
     import torchvision.models as models
     mm = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
-    mm = nn.Sequential(*list(mm.children())[:-1])
+    # mm = nn.Sequential(*list(mm.children())[:-1])
     # print(mm)
     i = torch.rand(8,3,224,224)
     o = mm(i)
