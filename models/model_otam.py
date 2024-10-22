@@ -43,7 +43,10 @@ class CNN_FSHead(nn.Module):
         self.train()
         self.args = args
 
-        last_layer_idx = -1
+        last_layer_idx = -2
+        from .myRes import mo_3
+        self.mo=mo_3()
+        self.avg=nn.AdaptiveAvgPool2d(1)
         
         if self.args.MODEL.BACKBONE == "resnet18":
             backbone = models.resnet18(pretrained=True) 
@@ -57,19 +60,20 @@ class CNN_FSHead(nn.Module):
             backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
             self.backbone = nn.Sequential(*list(backbone.children())[:last_layer_idx])
 
-    def get_feats(self, support_images, target_images):
+    def get_feats(self, support_images, target_images, context_labels):
         """
         Takes in images from the support set and query video and returns CNN features.
         """
         support_features = self.backbone(support_images).squeeze()
         target_features = self.backbone(target_images).squeeze()
+        mo_logits = self.mo(target_features, support_features, context_labels)
 
         dim = int(support_features.shape[1])
 
         support_features = support_features.reshape(-1, 8, dim)
         target_features = target_features.reshape(-1, 8, dim)
 
-        return support_features, target_features
+        return support_features, target_features, mo_logits
 
     def forward(self, support_images, support_labels, target_images):
         """
@@ -136,7 +140,7 @@ class CNN_OTAM(CNN_FSHead):
         #support_images, support_labels, target_images = inputs['support_set'], inputs['support_labels'], inputs['target_set'] # [200, 3, 224, 224]
         # [200, 3, 84, 84]
 
-        support_features, target_features = self.get_feats(support_images, target_images)
+        support_features, target_features, mo_logits = self.get_feats(support_images, target_images, support_labels)
         # [25, 8, 2048] [25, 8, 2048]
         unique_labels = torch.unique(support_labels)
 
@@ -158,7 +162,7 @@ class CNN_OTAM(CNN_FSHead):
         class_dists = [torch.mean(torch.index_select(cum_dists, 1, extract_class_indices(support_labels, c)), dim=1) for c in unique_labels]
         class_dists = torch.stack(class_dists)
         class_dists = rearrange(class_dists, 'c q -> q c')
-        return_dict = {'logits': - class_dists.unsqueeze(0)}
+        return_dict = {'logits': - class_dists.unsqueeze(0), 'mo_logits':mo_logits}
         return return_dict
 
     def distribute_model(self):

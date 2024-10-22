@@ -320,7 +320,8 @@ class Learner:
             if mode == 'test':
                 del target_logits
         else:
-            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
+            task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH \
+                            + self.loss(model_dict['mo_logits'], target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH 
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
             if mode == 'test':
                 del target_logits

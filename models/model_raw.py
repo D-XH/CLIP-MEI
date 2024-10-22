@@ -27,13 +27,14 @@ class CNN(nn.Module):
             # resnet = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
         self.ddd = True
 
-        last_layer_idx = -1
+        last_layer_idx = -2
         self.resnet = nn.Sequential(*list(resnet.children())[:last_layer_idx])
         #self.resnet1 = nn.Sequential(*list(resnet.children())[:-4])
         #self.resnet2 = nn.Sequential(*list(resnet.children())[-4:-1])
         #self.man = GroupGLKA(3)
-        from .myRes import mo_1
-        self.mo = mo_1()
+        from .myRes import mo_3
+        self.mo = mo_3()
+        self.avg=nn.AdaptiveAvgPool2d(1)
     def forward(self, context_images, context_labels, target_images):
 
         '''
@@ -50,6 +51,8 @@ class CNN(nn.Module):
         target_features = self.resnet(target_images) # 160 x 2048
         mo_logits = self.mo(target_features, context_features, context_labels)
         # Reshaping before passing to the Cross-Transformer and computing the distance after patch-enrichment as well
+        context_features = self.avg(context_features) # 200 x 2048
+        target_features = self.avg(target_features)
         context_features = context_features.reshape(-1, self.cfg.DATA.SEQ_LEN, self.cfg.trans_linear_in_dim) # 25 x 8 x 2048
         target_features = target_features.reshape(-1, self.cfg.DATA.SEQ_LEN, self.cfg.trans_linear_in_dim) # 20 x 8 x 2048
 

@@ -613,7 +613,8 @@ class mo_2(nn.Module):
     def __init__(self,):
         super().__init__()
         self.mo = nn.Parameter(torch.rand(1, 1, 2048), requires_grad=True)
-        self.trans = Transformer_v1()
+        self.trans_1 = Transformer_v1(dropout_atte=0.2)
+        self.trans_2 = Transformer_v1(dropout_atte=0.2)
 
     def forward(self, qu, su, su_l):
         # (160, 2048) (200, 2048)
@@ -624,16 +625,16 @@ class mo_2(nn.Module):
 
         qu_v = qu.mean(1).unsqueeze(0)  # (1, 20, 2048)
         su_v = su.mean(1).unsqueeze(0)  # (1, 25, 2048)
-        mo_q = self.trans(qu_v, self.mo, self.mo).reshape(qn, 1, 2048)   # (20, 1, 2048)
-        mo_s = self.trans(su_v, self.mo, self.mo).reshape(sn, 1, 2048)   # (25, 1, 2048)
+        mo_q = self.trans_1(qu_v, self.mo, self.mo).reshape(qn, 1, 2048)   # (20, 1, 2048)
+        mo_s = self.trans_1(su_v, self.mo, self.mo).reshape(sn, 1, 2048)   # (25, 1, 2048)
 
         qu_pre, qu_la = qu[:, :-1], qu[:, 1:]
         su_pre, su_la = su[:, :-1], su[:, 1:]
         diff_q = qu_la - qu_pre # (20, 7, 2048)
         diff_s = su_la - su_pre # (25, 7, 2048)
         
-        mo_q = self.trans(mo_q, diff_q, diff_q).squeeze(1) # (20, 2048)
-        mo_s = self.trans(mo_s, diff_s, diff_s).squeeze(1) # (25, 2048)
+        mo_q = self.trans_2(mo_q, diff_q, diff_q).squeeze(1) # (20, 2048)
+        mo_s = self.trans_2(mo_s, diff_s, diff_s).squeeze(1) # (25, 2048)
 
         dist = cosine_dist(mo_q,mo_s) # (20, 25)
 
@@ -644,6 +645,36 @@ class mo_2(nn.Module):
         probability = torch.nn.functional.softmax(dist, dim=-1)
         return probability.unsqueeze(0)
 
+class mo_3(nn.Module):
+    def __init__(self,):
+        super().__init__()
+        self.mo = nn.Parameter(torch.rand(1, 49, 2048), requires_grad=True)
+        nn.init.xavier_normal_(self.mo)
+        self.trans_1 = Transformer_v1(dropout_atte=0.2)
+        self.trans_2 = Transformer_v1(dropout_atte=0.2)
+
+    def forward(self, qu, su, su_l):
+        # (160, 2048, 7, 7) (200, 2048, 7, 7)
+        qu_v = qu.reshape(-1, 8, 2048, 49)  # (20, 8, 2048, 49)
+        su_v = su.reshape(-1, 8, 2048, 49)  # (25, 8, 2048, 49)
+        mo_q = self.mo * qu_v.mean((1,2,3), keepdim=True).squeeze(1)   # (20, 49, 2048)
+        mo_s = self.mo * su_v.mean((1,2,3), keepdim=True).squeeze(1)   # (25, 49, 2048)
+        for i in range(8):
+            qu_v_f = qu_v[:, i].transpose(-2, -1)   # (20, 49, 2048)
+            su_v_f = su_v[:, i].transpose(-2, -1)   # (25, 49, 2048)
+            mo_q = self.trans_1(qu_v_f, mo_q, mo_q)   # (20, 49, 2048)
+            mo_s = self.trans_1(su_v_f, mo_s, mo_s)   # (25, 49, 2048)
+        mo_q = self.trans_2(mo_q, mo_q, mo_q).mean(1)   # (20, 2048)
+        mo_s = self.trans_2(mo_s, mo_s, mo_s).mean(1)   # (25, 2048)
+
+        dist = cosine_dist(mo_q,mo_s) # (20, 25)
+
+        unique_labels = torch.unique(su_l)
+        dist = [torch.mean(torch.index_select(dist, 1, extract_class_indices(su_l, c)), dim=1) for c in unique_labels] # 5 20
+        dist = torch.stack(dist, 0).transpose(0, 1) # (5, 20)
+        #print(dist.shape)
+        probability = torch.nn.functional.softmax(dist, dim=-1)
+        return probability.unsqueeze(0)
 
 ###########################################################################################################
 
@@ -677,11 +708,14 @@ def cosine_dist(x,y):
 ###########################################################################################################
 if __name__ == '__main__':
     import torchvision.models as models
+    from time import time
     # mm = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
     # mm = nn.Sequential(*list(mm.children())[:-1])
     # print(mm)
     mm = mo_2()
     i = torch.rand(160, 2048)
     i2 = torch.rand(200, 2048)
+    start = time()
     o = mm(i, i2, torch.tensor([0,1,2,3,4,0,1,2,3,4,0,1,2,3,4,0,1,2,3,4]))
-    print(o)
+    print(time()-start)
+    print(o.shape)
