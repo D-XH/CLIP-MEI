@@ -491,16 +491,197 @@ class GroupGLKA(nn.Module):
         
         x = self.proj_last(x*a)*self.scale + shortcut
         
-        return x     
+        return x  
 
 ###########################################################################################################
 ###########################################################################################################
 
+from torch import einsum
+from einops import rearrange
+
+class PreNormattention_qkv(nn.Module):
+    def __init__(self, dim, fn):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.fn = fn
+
+    def forward(self, q, k, v, **kwargs):
+        return self.fn(self.norm(q), self.norm(k), self.norm(v), **kwargs) + q
+    
+class Attention_qkv(nn.Module):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+        super().__init__()
+        inner_dim = dim_head * heads
+        project_out = not (heads == 1 and dim_head == dim)
+
+        self.heads = heads
+        self.scale = dim_head ** -0.5
+
+        self.attend = nn.Softmax(dim=-1)
+        # self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_q = nn.Linear(dim, inner_dim, bias=False)
+        self.to_k = nn.Linear(dim, inner_dim, bias=False)
+        self.to_v = nn.Linear(dim, inner_dim, bias=False)
+
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        ) if project_out else nn.Identity()
+
+    def forward(self, q, k, v):
+        b, n, _, h = *q.shape, self.heads
+        bk = k.shape[0]
+        # qkv = self.to_qkv(x).chunk(3, dim = -1)
+        q = self.to_q(q)
+        k = self.to_k(k)
+        v = self.to_v(v)
+        # q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), qkv)
+        q = rearrange(q, 'b n (h d) -> b h n d', h=h)
+        k = rearrange(k, 'b n (h d) -> b h n d', b=bk, h=h)
+        v = rearrange(v, 'b n (h d) -> b h n d', b=bk, h=h)
+
+        dots = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
+
+        attn = self.attend(dots)  # [30, 8, 8, 5]
+
+        out = einsum('b h i j, b h j d -> b h i d', attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        return self.to_out(out)
+    
+class FeedForward(nn.Module):
+    def __init__(self, dim, hidden_dim, dropout=0.):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, dim),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+    
+class Transformer_v1(nn.Module):
+    def __init__(self, heads=8, dim=2048, dim_head_k=256, dim_head_v=256, dropout_atte=0.05, mlp_dim=2048,
+                 dropout_ffn=0.05, depth=1):
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        self.depth = depth
+        for _ in range(depth):
+            self.layers.append(
+                nn.ModuleList([  # PreNormattention(2048, Attention(2048, heads = 8, dim_head = 256, dropout = 0.2))
+                    # PreNormattention(heads, dim, dim_head_k, dim_head_v, dropout=dropout_atte),
+                    PreNormattention_qkv(dim,
+                                         Attention_qkv(dim, heads=heads, dim_head=dim_head_k, dropout=dropout_atte)),
+                    FeedForward(dim, mlp_dim, dropout=dropout_ffn),
+                ]))
+
+    def forward(self, q, k, v):
+        # if self.depth
+        for attn, ff in self.layers[:1]:
+            x = attn(q, k, v)
+            x = ff(x) + x
+        if self.depth > 1:
+            for attn, ff in self.layers[1:]:
+                x = attn(x, x, x)
+                x = ff(x) + x
+        return x
+    
+class mo_1(nn.Module):
+    def __init__(self,):
+        super().__init__()
+        self.mo = nn.Parameter(torch.rand(1, 1, 2048), requires_grad=True)
+        self.trans = Transformer_v1()
+
+    def forward(self, qu, su, su_l):
+        # (160, 2048) (200, 2048)
+        qu_v = qu.reshape(-1, 8, 2048).mean(1).unsqueeze(0)  # (1, 20, 2048)
+        su_v = su.reshape(-1, 8, 2048).mean(1).unsqueeze(0)  # (1, 25, 2048)
+        mo_q = self.trans(qu_v, self.mo, self.mo).squeeze(0)   # (20, 2048)
+        mo_s = self.trans(su_v, self.mo, self.mo).squeeze(0)   # (25, 2048)
+        unique_labels = torch.unique(su_l)
+        mo_s = [torch.mean(mo_s[extract_class_indices(su_l, c)], dim=0) for c in unique_labels] # 5 2048
+        mo_s = torch.stack(mo_s, 0) # (5, 2048)
+
+        dist = cosine_dist(mo_q,mo_s) 
+        #print(dist.shape)
+        probability = torch.nn.functional.softmax(dist, dim=-1)
+        return probability.unsqueeze(0)
+
+class mo_2(nn.Module):
+    def __init__(self,):
+        super().__init__()
+        self.mo = nn.Parameter(torch.rand(1, 1, 2048), requires_grad=True)
+        self.trans = Transformer_v1()
+
+    def forward(self, qu, su, su_l):
+        # (160, 2048) (200, 2048)
+        qu = qu.reshape(-1, 8, 2048)    # (20, 8, 2048)
+        su = su.reshape(-1, 8, 2048)    # (25, 8, 2048)
+
+        qn, sn = qu.size(0), su.size(0)
+
+        qu_v = qu.mean(1).unsqueeze(0)  # (1, 20, 2048)
+        su_v = su.mean(1).unsqueeze(0)  # (1, 25, 2048)
+        mo_q = self.trans(qu_v, self.mo, self.mo).reshape(qn, 1, 2048)   # (20, 1, 2048)
+        mo_s = self.trans(su_v, self.mo, self.mo).reshape(sn, 1, 2048)   # (25, 1, 2048)
+
+        qu_pre, qu_la = qu[:, :-1], qu[:, 1:]
+        su_pre, su_la = su[:, :-1], su[:, 1:]
+        diff_q = qu_la - qu_pre # (20, 7, 2048)
+        diff_s = su_la - su_pre # (25, 7, 2048)
+        
+        mo_q = self.trans(mo_q, diff_q, diff_q).squeeze(1) # (20, 2048)
+        mo_s = self.trans(mo_s, diff_s, diff_s).squeeze(1) # (25, 2048)
+
+        dist = cosine_dist(mo_q,mo_s) # (20, 25)
+
+        unique_labels = torch.unique(su_l)
+        dist = [torch.mean(torch.index_select(dist, 1, extract_class_indices(su_l, c)), dim=1) for c in unique_labels] # 5 20
+        dist = torch.stack(dist, 0).transpose(0, 1) # (5, 20)
+        #print(dist.shape)
+        probability = torch.nn.functional.softmax(dist, dim=-1)
+        return probability.unsqueeze(0)
+
+
+###########################################################################################################
+
+def extract_class_indices(labels, which_class):
+    """
+    Helper method to extract the indices of elements which have the specified label.
+    :param labels: (torch.tensor) Labels of the context set.
+    :param which_class: Label for which indices are extracted.
+    :return: (torch.tensor) Indices in the form of a mask that indicate the locations of the specified label.
+    """
+    class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
+    class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
+    return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
+
+def cosine_dist(x,y):
+    n = x.size(0)
+    m = y.size(0)
+    d = x.size(1)
+    assert d == y.size(1)
+
+    cosine_sim_list = []
+    for i in range(m):
+        y_tmp = y[i].unsqueeze(0)
+        x_tmp = x
+        #print(x_tmp.size(),y_tmp.size())
+        cosine_sim = nn.functional.cosine_similarity(x_tmp,y_tmp)
+        cosine_sim_list.append(cosine_sim)
+    return torch.stack(cosine_sim_list).transpose(0,1)
+
+###########################################################################################################
+###########################################################################################################
 if __name__ == '__main__':
     import torchvision.models as models
-    mm = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
+    # mm = resnet50_2(weights=models.ResNet50_Weights.DEFAULT)
     # mm = nn.Sequential(*list(mm.children())[:-1])
     # print(mm)
-    i = torch.rand(8,3,224,224)
-    o = mm(i)
-    print(o.shape)
+    mm = mo_2()
+    i = torch.rand(160, 2048)
+    i2 = torch.rand(200, 2048)
+    o = mm(i, i2, torch.tensor([0,1,2,3,4,0,1,2,3,4,0,1,2,3,4,0,1,2,3,4]))
+    print(o)
