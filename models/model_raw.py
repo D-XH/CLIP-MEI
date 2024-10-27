@@ -35,7 +35,7 @@ class CNN(nn.Module):
         from .myRes import mo_3
         self.mo = mo_3()
         self.avg=nn.AdaptiveAvgPool2d(1)
-    def forward(self, context_images, context_labels, target_images):
+    def forward(self, inputs):
 
         '''
             context_features/target_features is of shape (num_images x 2048) [final Resnet FC layer] after squeezing
@@ -43,7 +43,7 @@ class CNN(nn.Module):
         '''
             context_images: 200 x 3 x 224 x 224, target_images = 160 x 3 x 224 x 224
         '''
-        
+        context_images, context_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         # o1_s = self.man(context_images)
         # o1_q = self.man(target_images)
         

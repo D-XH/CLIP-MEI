@@ -117,6 +117,11 @@ class VideoDataset(torch.utils.data.Dataset):
                 if mode == 'train':
                     continue
                 mode = 'test'
+            #########################
+            else:
+                if mode == 'val':
+                    mode = 'test'
+            #########################
             fname = "{}list{:02d}.txt".format(mode, self.cfg.DATA.SPLIT)
             f = os.path.join(self.annotation_path, fname)
             mode_path = os.path.join(self.data_dir, mode)

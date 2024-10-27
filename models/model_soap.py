@@ -275,7 +275,7 @@ class CNN_SOAP(nn.Module):
         self.tripel_prior = SOAP(cfg)
         self.transformers = nn.ModuleList([TemporalCrossTransformer(cfg, s) for s in cfg.MODEL.TEMP_SET]) 
 
-    def forward(self, context_images, context_labels, target_images):
+    def forward(self, inputs):
 
         '''
             context_features/target_features is of shape (num_images x 2048) [final Resnet FC layer] after squeezing
@@ -283,6 +283,7 @@ class CNN_SOAP(nn.Module):
         '''
             context_images: 200 x 3 x 224 x 224, target_images = 160 x 3 x 224 x 224
         '''
+        context_images, context_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         #print(context_images.shape,target_images.shape)
         _, C, H, W = context_images.shape
         su, qu = self.tripel_prior(context_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W), target_images.reshape(-1, self.cfg.DATA.SEQ_LEN, C, H, W))

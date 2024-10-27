@@ -301,7 +301,8 @@ class CNN(nn.Module):
         self.mixer = mix(embed_dim=embed_dim, 
                          trans_linear_in_dim=self.dim)
 
-    def forward(self, su, su_l, qu):
+    def forward(self, inputs):
+        su, su_l, qu = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         # su:(40, 3, 224, 224) qu:(160, 3, 224, 224)
         unique_labels = torch.unique(su_l)
 

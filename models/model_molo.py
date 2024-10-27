@@ -403,7 +403,8 @@ class CNN_BiMHM_MoLo(CNN_FSHead):
         
         return support_features, target_features, class_logits, support_features_motion, target_features_motion, feature_motion_recons
 
-    def forward(self, support_images, support_labels, target_images):
+    def forward(self, inputs):
+        support_images, support_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         #support_images, support_labels, target_images = inputs['support_set'], inputs['support_labels'], inputs['target_set'] # [200, 3, 224, 224]
         # [200, 3, 84, 84]
         # if self.training and hasattr(self.args.MODEL, "USE_FLOW"):

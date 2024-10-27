@@ -70,8 +70,8 @@ class CNN_FSHead(nn.Module):
 
         dim = int(support_features.shape[1])
 
-        support_features = support_features.reshape(-1, 8, dim)
-        target_features = target_features.reshape(-1, 8, dim)
+        support_features = self.avg(support_features).reshape(-1, 8, dim)
+        target_features = self.avg(target_features).reshape(-1, 8, dim)
 
         return support_features, target_features, mo_logits
 
@@ -136,8 +136,8 @@ class CNN_OTAM(CNN_FSHead):
         args = cfg
         self.args = cfg
 
-    def forward(self, support_images, support_labels, target_images):
-        #support_images, support_labels, target_images = inputs['support_set'], inputs['support_labels'], inputs['target_set'] # [200, 3, 224, 224]
+    def forward(self, inputs):
+        support_images, support_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images'] # [200, 3, 224, 224]
         # [200, 3, 84, 84]
 
         support_features, target_features, mo_logits = self.get_feats(support_images, target_images, support_labels)

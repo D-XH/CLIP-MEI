@@ -451,7 +451,7 @@ class CNN_STRM(nn.Module):
         # MLP-mixing frame-level enrichment over the 8 frames.
         self.fr_enrich = MLP_Mix_Enrich(self.cfg.trans_linear_in_dim, self.cfg.DATA.SEQ_LEN)
 
-    def forward(self, context_images, context_labels, target_images):
+    def forward(self, inputs):
 
         '''
             context_features/target_features is of shape (num_images x 2048) [final Resnet FC layer] after squeezing
@@ -459,6 +459,7 @@ class CNN_STRM(nn.Module):
         '''
             context_images: 200 x 3 x 224 x 224, target_images = 160 x 3 x 224 x 224
         '''
+        context_images, context_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         context_features = self.resnet(context_images) # 200 x 2048 x 7 x 7
         target_features = self.resnet(target_images) # 160 x 2048 x 7 x 7
 

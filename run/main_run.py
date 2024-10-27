@@ -79,6 +79,7 @@ class Learner:
         self.start_iteration = 0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
             self.load_checkpoint()
+        self.optimizer.step()
         self.optimizer.zero_grad()
 
     def init_model(self):
@@ -94,6 +95,12 @@ class Learner:
             from models.model_soap import CNN_SOAP as CNN
         elif self.cfg.MODEL.NAME == 'otam':
             from models.model_otam import CNN_OTAM as CNN
+        elif self.cfg.MODEL.NAME == 'clipfsar':
+            from models.model_clipfsar import CNN_OTAM_CLIPFSAR as CNN
+        elif self.cfg.MODEL.NAME == 'cpm2c':
+            from models.model_cpm2c import CLIP_CPMMC_FSAR as CNN
+        elif self.cfg.MODEL.NAME == 'sten':
+            from models.model_sten import CNN_OTAM_CLIPFSAR as CNN
         elif self.cfg.MODEL.NAME == 'test':
             from models.model_test import CNN as CNN
         elif self.cfg.MODEL.NAME == 'raw':
@@ -208,11 +215,10 @@ class Learner:
         self.logfile.close()
 
     def train_task(self, task_dict):
-        context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
-
-        model_dict = self.model(context_images, context_labels, target_images)
+        input = self.prepare_task(task_dict)
+        model_dict = self.model(input)
         
-        task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels)
+        task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'])
         task_loss.backward(retain_graph=False)
 
         return task_loss, task_acc
@@ -232,10 +238,11 @@ class Learner:
                         break
                     iteration += 1
 
-                    context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
-                    model_dict = self.model(context_images, context_labels, target_images)
+                    input = self.prepare_task(task_dict)
+                    # context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
+                    model_dict = self.model(input)
 
-                    task_loss, task_acc = self._loss_and_acc(model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels, mode='test')
+                    task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'], mode='test')
 
                     losses.append(task_loss.item())
                     accuracies.append(task_acc.item())
@@ -270,7 +277,14 @@ class Learner:
         real_target_labels = real_target_labels.to(self.device)
         real_support_labels = real_support_labels.to(self.device)
 
-        return context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels  
+        return {'context_images':context_images, 
+                'target_images':target_images, 
+                'context_labels':context_labels, 
+                'target_labels':target_labels, 
+                'real_target_labels':real_target_labels, 
+                'batch_class_list':batch_class_list, 
+                'real_support_labels':real_support_labels
+                }  
 
     def shuffle(self, images, labels):
         """
@@ -282,7 +296,7 @@ class Learner:
     def _loss_and_acc(self, model_dict, target_labels, real_target_labels, batch_class_list, real_support_labels, mode='train'):
         lmd = 0.1
         model_dict = {k: v.to(self.device) for k,v in model_dict.items()}
-        target_logits = model_dict['logits']
+        target_logits = model_dict.get('logits')
 
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
@@ -314,6 +328,22 @@ class Learner:
                                     + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                         + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
                 task_accuracy = self.accuracy_fn(target_logits, target_labels)
+        elif self.cfg.MODEL.NAME == 'clipfsar':
+            task_loss =  (self.loss(target_logits, target_labels, self.device) + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * self.loss(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long(), self.device)) /self.cfg.TRAIN.TASKS_PER_BATCH
+            task_accuracy = self.accuracy_fn(target_logits, target_labels)
+            if mode == 'test':
+                del target_logits
+        elif self.cfg.MODEL.NAME == 'cpm2c':
+            lambdas = self.cfg.MODEL.LMD
+            target_logits_total = lambdas[1] * model_dict['logits_local'] + lambdas[2] * model_dict['logits_global']
+            task_loss = lambdas[0] * self.loss(model_dict['class_logits'], torch.cat([real_support_labels, real_target_labels], 0).long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + lambdas[1] * self.loss(model_dict['logits_local'], target_labels.long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + lambdas[2] * self.loss(model_dict['logits_global'], target_labels.long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH              
+            task_accuracy = self.accuracy_fn(target_logits_total, target_labels)
+            if mode == 'test':
+                del target_logits
+            else:
+                task_loss += 0.001 * model_dict['target_consist_distance']    
         elif self.cfg.MODEL.NAME == 'soap':
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH + model_dict['t_loss']
             task_accuracy = self.accuracy_fn(target_logits, target_labels)

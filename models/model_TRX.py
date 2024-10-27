@@ -161,8 +161,8 @@ class CNN_TRX(nn.Module):
 
         self.transformers = nn.ModuleList([TemporalCrossTransformer(cfg, s) for s in cfg.MODEL.TEMP_SET]) 
 
-    def forward(self, context_images, context_labels, target_images):
-
+    def forward(self, inputs):
+        context_images, context_labels, target_images = inputs['context_images'], inputs['context_labels'], inputs['target_images']
         context_features = self.resnet(context_images).squeeze()
         target_features = self.resnet(target_images).squeeze()
 
