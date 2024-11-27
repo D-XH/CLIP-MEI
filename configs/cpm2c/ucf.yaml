@@ -1,10 +1,11 @@
+DEBUG: true
 MODEL: 
   NAME: 'cpm2c'
   BACKBONE: 'RN50'          # ["RN50", "ViT-B/16"]
   SEED: 6
   USE_CLASSIFICATION: true
   USE_CLASSIFICATION_VALUE: 1.5
-  MOTION_COFF: 1.
+  MOTION_COFF: 0
   NORMAL_COFF: 1.
   LMD: [0.5, 1, 0] # logits = lambdas[1] * target_logits + lambdas[2] * target_logits_global 
           # loss =  lambdas[0] * l_class_logits + lambdas[1] * l_target_logits + lambdas[2] * l_target_logits_global
@@ -12,7 +13,7 @@ MODEL:
 TRAIN:
   WAY: 5
   SHOT: 1
-  QUERY_PER_CLASS: 5
+  QUERY_PER_CLASS: 4
 
   TRAIN_EPISODES: 20010
   VAL_FREQ: 1000
@@ -21,7 +22,7 @@ TRAIN:
 TEST:
   ONLY_TEST: false
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 10000
+  TEST_EPISODES: 5000
   TEST_MODEL_PATH: 'checkpoint/ucf/1shot/cpm2c/checkpoint_best.pt'
   CLASS_NAME: ['Blowing Candles', 'Clean And Jerk', 'Cliff Diving', 'Cutting in Kitchen', 'Diving', 'Floor Gymnastics', 'Golf Swing', 'Handstand Walking', 'Horse Race', 'Ice Dancing', 'Jump Rope', 'Pommel Horse', 'Punch', 'Rock Climbing Indoor', 'Salsa Spin', 'Skiing', 'Sky Diving', 'Still Rings', 'Surfing', 'Tennis Swing', 'Volleyball Spiking']
   

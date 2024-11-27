@@ -1,26 +1,32 @@
+INFO: 'test_3_notv_sem-1mlp_task2'
+DEBUG: false
 MODEL: 
   NAME: 'test'
-  BACKBONE: 'resnet50'          # ["resnet18", "resnet34", "resnet50"]
-  SEED: 666
-
-  ATT_DROP: 0.            # Transformer dropout
-  PROJ_DROP: 0.
-  HEAD_NUM: 8
-  EMBED_DIM: 256
+  BACKBONE: 'RN50'          # ["RN50", "ViT-B/16"]
+  SEED: 6
+  USE_CLASSIFICATION: true
+  USE_CLASSIFICATION_VALUE: 1.5
+  MOTION_COFF: 0.
+  NORMAL_COFF: 1.
+  LMD: [0.5, 1, 0] # logits = lambdas[1] * target_logits + lambdas[2] * target_logits_global 
+          # loss =  lambdas[0] * l_class_logits + lambdas[1] * l_target_logits + lambdas[2] * l_target_logits_global
 
 TRAIN:
   WAY: 5
-  SHOT: 1
+  SHOT: 5
   QUERY_PER_CLASS: 4
 
   TRAIN_EPISODES: 20010
-  VAL_FREQ: 5000
+  VAL_FREQ: 1000
+  CLASS_NAME: ['Apply Eye Makeup', 'Archery', 'Baby Crawling', 'Balance Beam', 'Band Marching', 'Baseball Pitch', 'Basketball', 'Basketball Dunk', 'Bench Press', 'Biking', 'Billiards', 'Blow DryHair', 'Body Weight Squats', 'Bowling', 'Boxing Punching Bag', 'Boxing Speed Bag', 'Breast Stroke', 'Brushing Teeth', 'Cricket Bowling', 'Drumming', 'Fencing', 'Field Hockey Penalty', 'Frisbee Catch', 'Front Crawl', 'Haircut', 'Hammering', 'Head Massage', 'Hula Hoop', 'Javelin Throw', 'Juggling Balls', 'Jumping Jack', 'Kayaking', 'Knitting', 'Long Jump', 'Lunges', 'Military Parade', 'Mixing', 'Mopping Floor', 'Nunchucks', 'Parallel Bars', 'Pizza Tossing', 'Playing Cello', 'Playing Dhol', 'Playing Flute', 'Playing Piano', 'Playing Sitar', 'Playing Tabla', 'Playing Violin', 'Pole Vault', 'Pull Ups', 'Push Ups', 'Rafting', 'Rope Climbing', 'Rowing', 'Shaving Beard', 'Skijet', 'Soccer Juggling', 'Soccer Penalty', 'Sumo Wrestling', 'Swing', 'Table Tennis Shot', 'Tai Chi', 'Throw Discus', 'Trampoline Jumping', 'Typing', 'Uneven Bars', 'Walking WithDog', 'Wall Pushups', 'Writing On Board', 'Yo Yo']
   
 TEST:
-  ONLY_TEST: false
+  ONLY_TEST: true
   QUERY_PER_CLASS: 1
-  TEST_EPISODES: 3000
-  TEST_MODEL_PATH: '/home/zhangbin/tx/FSAR/test_ckp/test/ucf_1shot_best.pt'
+  TEST_EPISODES: 10000
+  TEST_MODEL_PATH: 'checkpoint/ucf/5shot/test/checkpoint_best.pt'
+  CLASS_NAME: ['Blowing Candles', 'Clean And Jerk', 'Cliff Diving', 'Cutting in Kitchen', 'Diving', 'Floor Gymnastics', 'Golf Swing', 'Handstand Walking', 'Horse Race', 'Ice Dancing', 'Jump Rope', 'Pommel Horse', 'Punch', 'Rock Climbing Indoor', 'Salsa Spin', 'Skiing', 'Sky Diving', 'Still Rings', 'Surfing', 'Tennis Swing', 'Volleyball Spiking']
+  
 DATA:
   DATASET: 'ucf'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
   DATA_DIR: '/home/zhangbin/tx/datasets/'
@@ -29,10 +35,11 @@ DATA:
   NUM_WORKERS: 8
 
 CHECKPOINT:
-  CHECKPOINT_DIR: 'checkpoint/ucf/1shot/test'
+  CHECKPOINT_DIR: 'checkpoint/ucf/5shot/test'
   SAVE_FREQ: 20000
 
 SOLVER:
-  LR: 0.0001
-  OPTIM_METHOD: 'sgd'   # ["adam", "sgd"]
+  LR: 0.00001
+  WEIGHT_DECAY: 5e-5
+  OPTIM_METHOD: 'adam'   # ["adam", "sgd"]
 

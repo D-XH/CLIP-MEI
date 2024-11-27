@@ -8,7 +8,6 @@ from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggr
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
-
 def getWIFN(seed):
     def worker_init_fn(worker_id):
         worker_seed = seed + worker_id
@@ -33,12 +32,15 @@ class Learner:
         #self.writer = SummaryWriter()
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
-        log_dir = './runs/'
+        log_dir = './new_runs/'
         if cfg.INFO == '':
             info = f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}"
         else:
             info = f"{cfg.INFO}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}"
-        self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{info}=>{datetime.now().strftime('%Y|%m|%d-%H:%M:%S')}"),flush_secs = 30)
+        if cfg.DEBUG:
+            self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f'debug_{cfg.MODEL.NAME}'),flush_secs = 30)
+        else:
+            self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{info}=>{datetime.now().strftime('%Y|%m|%d-%H:%M:%S')}"),flush_secs = 30)
         ######################################################################################
         
         #gpu_device = 'cuda:0'
@@ -140,10 +142,10 @@ class Learner:
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
         if cfg.DATA.DATASET == 'ssv2_cmn':
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_CMN_256x256q5_l8")
         elif cfg.DATA.DATASET == 'hmdb':
-            cfg.traintestlist = os.path.join("/home/sjtu/data/splits/hmdb_ARN/")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "HMDB51/jpg")
+            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/hmdb_ARN/")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "hmdb_256x256q5_l8")
         elif cfg.DATA.DATASET == 'ucf':
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ucf_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf_256x256q5_l8")
@@ -192,6 +194,7 @@ class Learner:
                     print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'.format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(), torch.Tensor(train_accuracies).mean().item()))
                     self.writer.add_scalar('loss/Train_loss[mean]', torch.Tensor(losses).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     self.writer.add_scalar('acc/Train_acc[mean]', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
+                    self.writer.add_scalar('para/mo_alpha1', self.model.mo_alpha1, (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     train_accuracies = []
                     losses = []
 
@@ -217,7 +220,6 @@ class Learner:
     def train_task(self, task_dict):
         input = self.prepare_task(task_dict)
         model_dict = self.model(input)
-        
         task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'])
         task_loss.backward(retain_graph=False)
 
@@ -297,7 +299,6 @@ class Learner:
         lmd = 0.1
         model_dict = {k: v.to(self.device) for k,v in model_dict.items()}
         target_logits = model_dict.get('logits')
-
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
             target_logits_post_pat = model_dict['logits_post_pat']
@@ -320,9 +321,9 @@ class Learner:
                 task_accuracy = self.accuracy_fn(target_logits, target_labels)
                 del target_logits
             else:
-                task_loss =  (self.loss(target_logits, target_labels, self.device)/ self.cfg.TRAIN.TASKS_PER_BATCH \
-                      + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * self.loss(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long(), self.device)) /self.cfg.TRAIN.TASKS_PER_BATCH \
-                        + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                task_loss = ( self.loss(target_logits, target_labels, self.device)/ self.cfg.TRAIN.TASKS_PER_BATCH \
+                      +self.cfg.MODEL.USE_CLASSIFICATION_VALUE * self.loss(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long(), self.device)) /self.cfg.TRAIN.TASKS_PER_BATCH \
+                         + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                             + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                 + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_s2q_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                     + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
@@ -343,7 +344,14 @@ class Learner:
             if mode == 'test':
                 del target_logits
             else:
-                task_loss += 0.001 * model_dict['target_consist_distance']    
+                task_loss += 0.001 * model_dict['target_consist_distance'] #+ 0.001 * model_dict['text_distance']   
+        elif self.cfg.MODEL.NAME == 'test':
+            task_loss = self.loss(model_dict['logits'], target_labels.long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + 0.001 * model_dict['dists'] \
+                        #+ 0.5 * self.loss(model_dict['class_logits'], torch.cat([real_support_labels, real_target_labels], 0).long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH 
+            task_accuracy = self.accuracy_fn(model_dict['logits'], target_labels)
+            if mode == 'test':
+                del target_logits
         elif self.cfg.MODEL.NAME == 'soap':
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH + model_dict['t_loss']
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
@@ -351,7 +359,7 @@ class Learner:
                 del target_logits
         else:
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH \
-                            + self.loss(model_dict['mo_logits'], target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH 
+                            #+ self.loss(model_dict['mo_logits'], target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH 
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
             if mode == 'test':
                 del target_logits

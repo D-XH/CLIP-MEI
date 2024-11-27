@@ -144,6 +144,8 @@ class VideoDataset(torch.utils.data.Dataset):
                     imgs_path.sort()
                     if self.cfg.DATA.DATASET == 'ssv2' or self.cfg.DATA.DATASET == 'ssv2_cmn':
                         class_id = int(cls.split(mode)[-1])
+                        if self.cfg.DATA.DATASET == 'ssv2_cmn' and mode == 'train':
+                            class_id -= 24
                     else:
                         if cls_dic.get(cls) == None:
                             cls_dic[cls] = idx
@@ -255,7 +257,7 @@ class VideoDataset(torch.utils.data.Dataset):
         real_target_labels = []
 
         for bl, bc in enumerate(batch_classes):
-
+            #print(bl, bc)
             #select shots from the chosen classes
             n_total = c.get_num_videos_for_class(bc)
             idxs = random.sample([i for i in range(n_total)], self.shot + n_queries)
@@ -286,6 +288,6 @@ class VideoDataset(torch.utils.data.Dataset):
         real_support_labels = torch.FloatTensor(real_support_labels)
         real_target_labels = torch.FloatTensor(real_target_labels)
         batch_classes = torch.FloatTensor(batch_classes)
-
+        #print(support_labels)
         return {"support_set":support_set, "support_labels":support_labels, "target_set":target_set, \
                 "target_labels":target_labels, "real_target_labels":real_target_labels, "batch_class_list": batch_classes, "real_support_labels":real_support_labels}

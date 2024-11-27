@@ -6,12 +6,13 @@ from einops import rearrange
 import os
 import torch
 from .clip_fsar import load,tokenize
-from .myRes import cos_sim, OTAM_cum_dist_v2, extract_class_indices, Transformer_v1, FeedForward, Mlp, PositionalEncoder
+from .myRes import cos_sim, OTAM_cum_dist_v2, extract_class_indices, Transformer_v1, FeedForward, Mlp
+
 
 class CNN(nn.Module):
 
     def __init__(self, cfg):
-        super(CNN, self).__init__()
+        super().__init__()
         self.args = cfg
         if cfg.MODEL.BACKBONE == "RN50":
             clip_backbone, self.preprocess = load(cfg.MODEL.BACKBONE, device="cuda", cfg=cfg, jit=False)  # ViT-B/16
@@ -19,6 +20,7 @@ class CNN(nn.Module):
             self.class_real_train = cfg.TRAIN.CLASS_NAME  #所有得训练样本 标签名称
             self.class_real_test = cfg.TEST.CLASS_NAME    #所有得测试样本 标签名称
             self.mid_dim = 1024
+            
         elif cfg.MODEL.BACKBONE == "ViT-B/16":
             #将clip模型加载了进来
             clip_backbone, self.preprocess = load(cfg.MODEL.BACKBONE, device="cuda", cfg=cfg, jit=False)  # ViT-B/16
@@ -38,10 +40,10 @@ class CNN(nn.Module):
             text_templete = ["a photo of {}".format(self.class_real_test[int(ii)]) for ii in range(len(self.class_real_test))]
             text_templete = tokenize(text_templete).cuda()
             self.text_features_test = clip_backbone.encode_text(text_templete)
-
         self.scale = nn.Parameter(torch.FloatTensor(1), requires_grad=True)
+
         self.scale.data.fill_(1.0)
-        
+
         # set_trace()
         self.factor=1
         self.motion_conv1 = nn.Conv1d(self.mid_dim // self.factor, self.mid_dim // self.factor, kernel_size=3, padding=1,groups=1)
@@ -49,35 +51,10 @@ class CNN(nn.Module):
 
         #self.token_linear1 = nn.Linear(self.mid_dim // self.factor, self.mid_dim // self.factor)
         #self.token_linear2 = nn.Linear(self.mid_dim // self.factor, self.mid_dim // self.factor)
-        # self.momo = Transformer_v1(dim=self.mid_dim, heads=8, dim_head_k=self.mid_dim // 8, dropout_atte=0.2)
+        #self.momo = Transformer_v1(dim=self.mid_dim, heads=8, dim_head_k=self.mid_dim // 8, dropout_atte=0.2)
         self.token_tr = token_trans()
-        self.context1 = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2)
         self.context2 = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2)
-        self.mo_alpha1 = nn.Parameter(torch.rand(1), requires_grad=True)
-       # self.mo_alpha2 = nn.Parameter(torch.rand(1), requires_grad=True)
-       # self.logit_alpha1 = nn.Parameter(torch.rand(1), requires_grad=True)
-       # self.logit_alpha2 = nn.Parameter(torch.rand(1), requires_grad=True)
-        nn.init.constant_(self.mo_alpha1, 1)
-       # nn.init.constant_(self.mo_alpha2, 0.1)
-       # nn.init.constant_(self.logit_alpha1, 0.4)
-       # nn.init.constant_(self.logit_alpha2, 0.9)
-       # #self.div = nn.Linear(1024, 1024)
-       # # self.downc = nn.Linear(1024, 512)
-       # # self.up = nn.Linear(512, kill -91024)
-       # self.context3 = Transformer_v1(dim=1024, heads=8, dim_head_k=64, dropout_atte=0.2)
-       # self.mm = Mlp(1024, 2048, 1024)
-       # #self.mm=FeedForward(1024,2048,0.05)
 
-       # # #task
-       # self.task_mlp = FeedForward(1024, 2048, dropout=0.05)
-
-        # #sp
-        #self.sp_avg = nn.AdaptiveAvgPool2d(16)
-        #self.sp_re = nn.Linear(1024, 256*3)
-        #self.sp_fc = nn.Linear(256, 1024)
-        #self.correlate = Transformer_v1(dim=3, heads=1, dim_head_k=3, dropout_atte=0.2)
-        # self.pe = PositionalEncoder(3)
-        
     def get_feats(self, support_images, target_images, support_real_class=False, support_labels=False):
         """
         Takes in images from the support set and query video and returns CLIP visual encoder features.
@@ -104,7 +81,6 @@ class CNN(nn.Module):
         return support_features, target_features, support_features_text
 
     def get_motion_feats(self, support_features, target_features):
-
         support_features_conv = self.motion_conv1(support_features.permute(0,2,1))
         target_features_conv = self.motion_conv1(target_features.permute(0, 2, 1))
         support_features_conv = self.motion_conv2(support_features_conv)
@@ -120,7 +96,7 @@ class CNN(nn.Module):
         target_features_motion = 0.5*(target_features_motion_f + target_features_motion_b)
 
         return support_features_motion.mean(-1), target_features_motion.mean(-1)
-    
+
     def forward(self, inputs):  # 获得support support labels, query, support real class
         support_images, support_labels, target_images, support_real_class = inputs['context_images'], inputs['context_labels'], inputs['target_images'], inputs['real_support_labels']
         target_real_class = inputs['real_target_labels']
@@ -135,76 +111,18 @@ class CNN(nn.Module):
 
         support_features, target_features, text_features = self.get_feats(support_images, target_images, support_real_class)
 
-        #class_text_logits = self.video2imagetext_adapter_mean(support_features, target_features)
+        class_text_logits = self.video2imagetext_adapter_mean(support_features, target_features)
 
-        #su = self.div(support_features).reshape(support_features.size(0), 8, 2, 512).permute(2,0,1,3)
-        #qu = self.div(target_features).reshape(target_features.size(0), 8, 2, 512).permute(2,0,1,3)
-        #su_1, qu_1 = self.sp(su[0], qu[0], support_images, target_images)
-        #su_2, qu_2, su_t2, qu_t2 = self.taskM(su[1],qu[1])
-        #su_1, qu_1 = self.sp(support_features, target_features, support_images, target_images)
-        #su_1, qu_1 = self.sp(su_1, qu_1, support_images, target_images)
-        #su_2, qu_2, su_t2, qu_t2 = self.taskM(support_features, target_features)
-        #su_2, qu_2, su_t2, qu_t2 = self.taskM(su_2, qu_2)
-        #unique_labels = torch.unique(support_labels)
-        #su_2_pro = [
-        #    torch.mean(torch.index_select(su_2, 0, extract_class_indices(support_labels, c)), dim=0)
-        #    for c in unique_labels]
-        #su_2_pro = torch.stack(su_2_pro)
-        #task_dist = self.otam_distance(su_2_pro, qu_2)
-        # 2
-        #su = (su_1 + su_2)*0.5
-        #qu = (qu_1 + qu_2)*0.5
-
-        #su = (self.context3(su_1, su, su) + self.context3(su_2, su, su))*0.5
-        #qu = (self.context3(qu_1, qu, qu) + self.context3(qu_2, qu, qu))*0.5
-        #su = self.context3(su, support_features, support_features)
-        #qu = self.context3(qu, target_features, target_features)
-        #su = self.context3(su, su, su)
-        #qu = self.context3(qu, qu, qu)
-        #su = (self.context3(su_1, support_features, support_features) + self.context3(su_2, support_features, support_features))*0.5
-        #qu = (self.context3(qu_1, target_features, target_features) + self.context3(qu_2, target_features, target_features))*0.5
-
-        #su = self.mm(support_features)
-        #qu = self.mm(target_features)
-        #su = self.context2(support_features, support_features, support_features)
-        #qu = self.context2(target_features, target_features, target_features)
-
-        # 1
-        #su = torch.concat([su_1, su_2], dim=-1) # (bs, 8, 1024)
-        #qu = torch.concat([qu_1, qu_2], dim=-1) # (bq, 8, 1024)
-        
-        #su = self.context2(su, su, su)
-        #qu = self.context2(qu, qu, qu)
-        #su = self.mm(su_1)
-        #qu = self.mm(qu_1)
-        # su_t = su_t1 + su_t2
-        # qu_t = qu_t1 + qu_t2
-
-        # su_t = self.up(su_t)
-        # qu_t = self.up(qu_t)
-
-        #su = self.logit_alpha1*su + self.logit_alpha2*support_features
-        #qu = self.logit_alpha1*qu + self.logit_alpha2*target_features
-        mo_dist_pre = self.mo(support_features, target_features)
-        #mo_dist = self.mo(su, qu)
-        su, qu = support_features, target_features 
-        su, qu, su_t2, qu_t2, class_dists_l, consist_distance, text_distance = self.cpt_sem(su, qu, support_labels)
-        dists = consist_distance + text_distance + self.mo_alpha1*mo_dist_pre# + self.mo_alpha2*mo_dist
-
-        su_2, qu_2, su_t2, qu_t2 = self.taskM(su, qu, support_labels)
-        unique_labels = torch.unique(support_labels)
-        su_pro = [
-           torch.mean(torch.index_select(su_2, 0, extract_class_indices(support_labels, c)), dim=0)
-           for c in unique_labels]
-        su_pro = torch.stack(su_pro)
-        task_dist = self.otam_distance(su_pro, qu_2) + self.otam_distance(su_t2, qu_t2)
+        class_dists_l, consist_distance, text_distance = self.cpt(support_features, target_features, support_labels)
+        mo_dist = self.mo(support_features, target_features)
+        dists = consist_distance + text_distance + mo_dist
         return_dict = {
-                       #"class_logits": class_text_logits.unsqueeze(0),
-                       "logits": - (0.5*class_dists_l + task_dist).unsqueeze(0),    #帧匹配
-                       "dists": dists,
+                       "class_logits": class_text_logits.unsqueeze(0),
+                       "logits": - class_dists_l.unsqueeze(0),    #帧匹配
+                       "dists": dists,  
                        }  # [5， 5] , [10 64]
         return return_dict
-    
+
     def mo(self, su, qu):
         # (25, 8, 1024) (20, 8, 1024)
         su_mo, qu_mo = self.get_motion_feats(su, qu)  # (25, 1024) (20, 1024)
@@ -215,7 +133,7 @@ class CNN(nn.Module):
 
         qu_m = self.context2(qu_m, qu_m, qu_m)
         su_m = self.context2(su_m, su_m, su_m)
-        
+
         qu_mo = qu_m[:, 0, :]
         su_mo = su_m[:, 0, :]
         qu_m = qu_m[:, 1:, :]
@@ -252,14 +170,14 @@ class CNN(nn.Module):
         su_pro = [
             torch.mean(torch.index_select(su_real, 0, extract_class_indices(su_l, c)), dim=0)
             for c in unique_labels]
-        # token_s_real = [
-        #     torch.mean(torch.index_select(token_s_real, 0, extract_class_indices(su_l, c)), dim=0)
-        #     for c in unique_labels]
-        # token_s_real = torch.stack(token_s_real)
+        token_s_real = [
+            torch.mean(torch.index_select(token_s_real, 0, extract_class_indices(su_l, c)), dim=0)
+            for c in unique_labels]
+        token_s_real = torch.stack(token_s_real)
         su_pro = torch.stack(su_pro)
         return su_real, qu_fake, su_pro, su_fake, qu_real, support_token, target_token,  token_q_real, token_q_fake, token_s_real
-    
-    def cpt_sem(self, su, qu, su_l):
+
+    def cpt(self, su, qu, su_l):
         su_real, qu_fake, su_pro, su_fake, qu_real, su_token, qu_token,  token_q_real, token_q_fake, token_s_real = self.sem(su, qu, su_l)
         # initial token --> qu
         token_dis = self._dis(self.target_context_support, qu_token)
@@ -281,61 +199,16 @@ class CNN(nn.Module):
 
         cum_dists = self.otam_distance(su_pro, qu_fake)
         #t_dis = self.otam_distance(token_s_real, token_q_fake)
-        class_dists_l = cum_dists #+ 0.8 * t_dis
+        class_dists_l = cum_dists #+ 0.5 * t_dis
 
-        return su_real, qu_fake, token_s_real, token_q_fake, class_dists_l, consist_distance, text_distance
-    
-    def taskM(self, su, qu, su_l):
-         # (25, 8, 256) (20, 8, 256)
-         unique_labels = torch.unique(su_l)
-         suu = [
-             torch.index_select(su, 0, extract_class_indices(su_l, c))
-             for c in unique_labels]
-         suu = torch.stack(suu)  # (5, 5, 8, 1024)
-         cn = suu.size(0)
-         token_s = torch.mean(torch.concat([suu, qu.unsqueeze(0).repeat(cn,1,1,1)], dim=1), dim=1)    # (5, 8, 1024)
-         token_q = torch.mean(token_s, dim=0, keepdim=True)  # (1, 8, 1024)
-       
-         su_t = torch.concat([token_s, su], dim=0).permute(1, 0, 2)  # (8, 30, 1024) # del
-         qu_t = torch.concat([token_q, qu], dim=0).permute(1, 0, 2)  # (8, 21, 1024)
-
-         _su = self.context1(su_t, su_t, su_t).permute(1, 0, 2)
-         _qu = self.context1(qu_t, qu_t, qu_t).permute(1, 0, 2)
-
-         return _su[cn:, :, :], _qu[1:, :, :], _su[:cn, :, :], _qu[0, :, :].unsqueeze(0)    
-
-    #def sp(self, su, qu, su_im, qu_im):
-    #    # (25, 8, 256) (20, 8, 256)  (200, 3, 224, 224) (160, 3, 224, 224)
-    #    su_r = self.sp_re(su).reshape(-1, 256, 3)   # (25, 8, 256)->(200, 256，3)
-    #    qu_r = self.sp_re(qu).reshape(-1, 256, 3)   # (20, 8, 256)->(160, 256，3)
-    #    su_im = self.sp_avg(su_im).reshape(su_im.size(0), su_im.size(1), -1).permute(0, 2, 1)  # (200, 3, 256)->(200, 256, 3)
-    #    qu_im = self.sp_avg(qu_im).reshape(qu_im.size(0), qu_im.size(1), -1).permute(0, 2, 1)  # (160, 3, 256)->(160, 256, 3)
-    #    
-    #    # su_r = self.pe(su_r)
-    #    # qu_r = self.pe(qu_r)
-    #    # print(su_im.shape, su_r.shape)
-    #    su_r = self.correlate(su_im, su_r, su_r).mean(-1)    # (200, 256)
-    #    qu_r = self.correlate(qu_im, qu_r, qu_r).mean(-1)    # (160, 256)
-    #    # su_r = self.correlate(su_r, su_im, su_im)    # (200, 256)
-    #    # qu_r = self.correlate(qu_r, qu_im, qu_im)    # (160, 256)
-
-    #    su_r = su_r.reshape(-1, 8, 256)
-    #    qu_r = qu_r.reshape(-1, 8, 256)
-    #    su_r = self.sp_fc(su_r)
-    #    qu_r = self.sp_fc(qu_r)
-    #    
-    #    su_r = self.context1(su_r, su_r, su_r)
-    #    qu_r = self.context1(qu_r, qu_r, qu_r)
-
-    #    return su_r, qu_r
-        
-
+        return class_dists_l, consist_distance, text_distance
+   
     def se_te(self, qu, token_q):
         # (20, 8, 1024) (25, 1, 1024) 
         q = qu + 0.1*token_q
         #token_q = self.trans2(token_q, qu, qu)
         q = torch.concat([token_q, q], dim=1)
-        #kv = torch.concat([token_q, qu+0.1*token_q], dim=1)
+
         q = self.context2(q, q, q)  # (20, 9, 1024)
         token_q, q = q[:,0,:], q[:,1:,:]
 
@@ -353,7 +226,7 @@ class CNN(nn.Module):
             class_text_logits = cos_sim(feature_classification, text_features) * self.scale  # 10 64， 10是10个视频样本，64是64个标签，对应于公式2
         else:
             class_text_logits = None
-        return class_text_logits
+        return class_text_logits    
 
     def _dis(self, x, y):
         diff = x - y  # (20, 1, 1024)
@@ -381,9 +254,8 @@ class CNN(nn.Module):
 class token_trans(nn.Module):
     def __init__(self,):
         super().__init__()
-        #self.trans = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2, depth=1)
+        #self.trans = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2)
         self.mlp = FeedForward(1024, 2048, dropout=0.05)
-        #self.mlp2 = FeedForward(1024, 2048, dropout=0.05)
 
     def forward(self, t, qu):
         # (1, 1, 1024) (20, 8, 1024)
@@ -391,7 +263,6 @@ class token_trans(nn.Module):
         #x = self.trans(t, qu, qu)
         #x = self.mlp(x)
         x = self.mlp(t*qu.mean(dim=[1,2], keepdim=True))
-        #x=self.mlp2(x)
         return x
     
 

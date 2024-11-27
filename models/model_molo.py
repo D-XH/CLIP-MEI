@@ -330,6 +330,7 @@ class CNN_BiMHM_MoLo(CNN_FSHead):
         """
         support_features = self.pre_reduce(self.backbone(support_images)).squeeze()  # [40, 2048, 7, 7] (5 way - 1 shot - 5 query)
         target_features = self.pre_reduce(self.backbone(target_images)).squeeze()   # [200, 2048, 7, 7]
+        #print(support_features[0], support_labels)
         # set_trace()
         batch_s = int(support_features.shape[0])
         batch_t = int(target_features.shape[0])

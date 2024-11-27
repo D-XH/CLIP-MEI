@@ -597,7 +597,6 @@ class ModifiedResNet(nn.Module):
             x = self.relu3(self.bn3(self.conv3(x)))
             x = self.avgpool(x)
             return x
-
         x = x.type(self.conv1.weight.dtype)
         x = stem(x)
         x = self.layer1(x)
@@ -793,7 +792,6 @@ class CLIP(nn.Module):
 
     def encode_text(self, text):
         x = self.token_embedding(text).type(self.dtype)  # [batch_size, n_ctx, d_model]
-
         x = x + self.positional_embedding.type(self.dtype)
         x = x.permute(1, 0, 2)  # NLD -> LND
         x = self.transformer(x)

@@ -631,6 +631,37 @@ class PositionalEncoder(nn.Module):
         x = x + self.B_scale * pe
         return self.dropout(x)
     
+class PositionalEncoder_v2(nn.Module):
+    def __init__(self, d_model=2048, max_seq_len = 20, dropout = 0.1, A_scale=10., B_scale=1):
+        super().__init__()
+        self.d_model = d_model
+        self.dropout = nn.Dropout(dropout)
+        pe = torch.zeros(max_seq_len, d_model)
+        for pos in range(max_seq_len):
+            for i in range(0, d_model, 2):
+                pe[pos, i] = \
+                math.sin(pos / (10000 ** ((2 * i)/d_model)))
+                if i + 1 == d_model:
+                    continue
+                pe[pos, i + 1] = \
+                math.cos(pos / (10000 ** ((2 * (i + 1))/d_model)))
+        pe = pe.unsqueeze(0)
+        self.A_scale = A_scale
+        self.B_scale = B_scale
+        self.register_buffer('pe', pe)
+ 
+    
+    def forward(self, x):
+        
+        x = x * math.sqrt(self.d_model/self.A_scale)
+        #add constant to embedding
+        seq_len = x.size(1)
+        pe = Variable(self.pe[:,:seq_len], requires_grad=False)
+        if x.is_cuda:
+            pe.cuda()
+        x = x + self.B_scale * pe
+        return self.dropout(x)
+
 class t_group(nn.Module):
     def __init__(self,):
         super().__init__()
@@ -824,6 +855,24 @@ def OTAM_cum_dist_v2(dists, lbda=0.5):
     return cum_dists[:, :, -1, -1]
 
 ###########################################################################################################
+
+class Mlp(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
 
 class Attention(nn.Module):
     def __init__(self, dim, heads=8, dim_head=64, dropout=0.):

@@ -1,5 +1,5 @@
 INFO: ''
-
+DEBUG: false
 MODEL:
   NAME: ''
   BACKBONE: 'resnet50'
