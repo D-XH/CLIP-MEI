@@ -138,19 +138,19 @@ class Learner:
         cfg.trans_linear_out_dim = cfg.MODEL.TRANS_LINEAR_OUT_DIM
 
         if cfg.DATA.DATASET == "ssv2":
-            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_OTAM")
+            cfg.traintestlist = os.path.join("splits/ssv2_OTAM")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_256x256q5_l8")
         if cfg.DATA.DATASET == 'ssv2_cmn':
-            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ssv2_CMN")
+            cfg.traintestlist = os.path.join("splits/ssv2_CMN")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ssv2_CMN_256x256q5_l8")
         elif cfg.DATA.DATASET == 'hmdb':
-            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/hmdb_ARN/")
+            cfg.traintestlist = os.path.join("splits/hmdb_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "hmdb_256x256q5_l8")
         elif cfg.DATA.DATASET == 'ucf':
-            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ucf_ARN/")
+            cfg.traintestlist = os.path.join("splits/ucf_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf_256x256q5_l8")
         elif cfg.DATA.DATASET == 'kinetics':
-            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/kinetics_CMN/")
+            cfg.traintestlist = os.path.join("splits/kinetics_CMN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "k100_256x256q5_l8")
 
         return cfg
