@@ -1,0 +1,45 @@
+INFO: 'test_3_notv_sem-1mlp_task2'
+DEBUG: false
+MODEL: 
+  NAME: 'test'
+  BACKBONE: 'RN50'          # ["RN50", "ViT-B/16"]
+  SEED: 6
+  USE_CLASSIFICATION: true
+  USE_CLASSIFICATION_VALUE: 1.5
+  MOTION_COFF: 0.
+  NORMAL_COFF: 1.
+  LMD: [0.5, 1, 0] # logits = lambdas[1] * target_logits + lambdas[2] * target_logits_global 
+          # loss =  lambdas[0] * l_class_logits + lambdas[1] * l_target_logits + lambdas[2] * l_target_logits_global
+
+TRAIN:
+  WAY: 5
+  SHOT: 3
+  QUERY_PER_CLASS: 4
+
+  TRAIN_EPISODES: 20010
+  VAL_FREQ: 1000
+  CLASS_NAME: ['water skiing', 'catching or throwing baseball', 'washing hands', 'opening bottle', 'doing nails', 'somersaulting', 'cooking chicken', 'riding unicycle', 'washing dishes', 'drop kicking', 'contact juggling', 'hopscotch', 'playing keyboard', 'weaving basket', 'pushing cart', 'giving or receiving award', 'bungee jumping', 'blowing out candles', 'making snowman', 'feeding birds', 'playing ukulele', 'driving tractor', 'dying hair', 'snowboarding', 'beatboxing', 'blowing glass', 'trapezing', 'shot put', 'shuffling cards', 'laughing', 'curling hair', 'bowling', 'country line dancing', 'eating burger', 'squat', 'playing didgeridoo', 'playing accordion', 'breakdancing', 'cleaning floor', 'playing ice hockey', 'playing xylophone', 'presenting weather forecast', 'sled dog racing', 'massaging back', 'jumping into pool', 'punching bag', 'reading book', 'shaving head', 'shaking head', 'using computer', 'jetskiing', 'playing badminton', 'biking through snow', 'sharpening pencil', 'waxing legs', 'slacklining', 'air drumming', 'arm wrestling', 'cheerleading', 'playing basketball', 'deadlifting', 'dribbling basketball', 'mowing lawn', 'surfing crowd']
+
+TEST:
+  ONLY_TEST: false
+  QUERY_PER_CLASS: 1
+  TEST_EPISODES: 5000
+  TEST_MODEL_PATH: 'checkpoint/kinetics/3shot/test/checkpoint_best.pt'
+  CLASS_NAME: ['stretching arm', 'hula hooping', 'playing drums', 'folding paper', 'ice skating', 'hurling (sport)', 'playing monopoly', 'tap dancing', 'unboxing', 'shearing sheep', 'dancing ballet', 'filling eyebrows', 'playing trumpet', 'diving cliff', 'riding elephant', 'dancing macarena', 'blasting sand', 'busking', 'pushing car', 'paragliding', 'side kick', 'dancing charleston', 'cutting watermelon', 'throwing axe']
+
+DATA:
+  DATASET: 'kinetics'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
+  DATA_DIR: '/home/zhangbin/tx/datasets/'
+  SEQ_LEN: 8
+  IMG_SIZE: 224
+  NUM_WORKERS: 8
+
+CHECKPOINT:
+  CHECKPOINT_DIR: 'checkpoint/kinetics/3shot/test'
+  SAVE_FREQ: 20000
+
+SOLVER:
+  LR: 0.00001
+  WEIGHT_DECAY: 5e-5
+  OPTIM_METHOD: 'adam'   # ["adam", "sgd"]
+

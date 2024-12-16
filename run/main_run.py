@@ -150,8 +150,8 @@ class Learner:
             cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/ucf_ARN/")
             cfg.path = os.path.join(cfg.DATA.DATA_DIR, "ucf_256x256q5_l8")
         elif cfg.DATA.DATASET == 'kinetics':
-            cfg.traintestlist = os.path.join("/home/sjtu/data/splits/kinetics_CMN/")
-            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "kinetics/Kinetics_frames")
+            cfg.traintestlist = os.path.join("/home/zhangbin/tx/FSAR/splits/kinetics_CMN/")
+            cfg.path = os.path.join(cfg.DATA.DATA_DIR, "k100_256x256q5_l8")
 
         return cfg
 
@@ -194,7 +194,7 @@ class Learner:
                     print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'.format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(), torch.Tensor(train_accuracies).mean().item()))
                     self.writer.add_scalar('loss/Train_loss[mean]', torch.Tensor(losses).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     self.writer.add_scalar('acc/Train_acc[mean]', torch.Tensor(train_accuracies).mean().item(), (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
-                    self.writer.add_scalar('para/mo_alpha1', self.model.mo_alpha1, (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
+                    #self.writer.add_scalar('para/mo_alpha1', self.model.mo_alpha1, (iteration + 1) // self.cfg.TRAIN.PRINT_FREQ)
                     train_accuracies = []
                     losses = []
 

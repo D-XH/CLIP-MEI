@@ -55,3 +55,8 @@
 #----------------- hmdb51 -----------------#
 CUDA_VISIBLE_DEVICES=0 python run/run.py \
 --cfg ./configs/test/hmdb.yaml
+
+#----------------- k-cmn -----------------#
+#CUDA_VISIBLE_DEVICES=0 python run/run.py \
+#--cfg ./configs/test/k100.yaml
+

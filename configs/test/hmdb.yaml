@@ -1,5 +1,5 @@
 INFO: 'test_3_notv_sem-1mlp_task2'
-DEBUG: true
+DEBUG: false
 MODEL: 
   NAME: 'test'
   BACKBONE: 'RN50'          # ["RN50", "ViT-B/16"]
@@ -13,8 +13,8 @@ MODEL:
 
 TRAIN:
   WAY: 5
-  SHOT: 1
-  QUERY_PER_CLASS: 3
+  SHOT: 5
+  QUERY_PER_CLASS: 4
 
   TRAIN_EPISODES: 20010
   VAL_FREQ: 1000
@@ -24,7 +24,7 @@ TEST:
   ONLY_TEST: false
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 5000
-  TEST_MODEL_PATH: 'checkpoint/hmdb/1shot/test/checkpoint_best.pt'
+  TEST_MODEL_PATH: 'checkpoint/hmdb/5shot/test/checkpoint_best.pt'
   CLASS_NAME: ['fencing', 'kick', 'kick ball', 'pick', 'pour', 'pushup', 'run', 'sit', 'smoke', 'talk']
 
 DATA:
@@ -35,7 +35,7 @@ DATA:
   NUM_WORKERS: 8
 
 CHECKPOINT:
-  CHECKPOINT_DIR: 'checkpoint/hmdb/1shot/test'
+  CHECKPOINT_DIR: 'checkpoint/hmdb/5shot/test'
   SAVE_FREQ: 20000
 
 SOLVER:
