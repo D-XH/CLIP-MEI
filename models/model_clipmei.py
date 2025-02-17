@@ -111,12 +111,12 @@ class CNN(nn.Module):
         support_features, target_features, text_features = self.get_feats(support_images, target_images, support_real_class)
 
         su, qu = support_features, target_features 
-        mo_dist_pre = self.mo(su, qu)
+        mo_dist_pre = self.mo(su, qu)    # MIC
 
-        su, qu, su_t2, qu_t2, class_dists_l, consist_distance, text_distance = self.cpt_sem(su, qu, support_labels)
+        su, qu, su_t2, qu_t2, class_dists_l, consist_distance, text_distance = self.cpt_sem(su, qu, support_labels)    # QSA
         dists = consist_distance + text_distance + self.mo_alpha1*mo_dist_pre
 
-        su_2, qu_2, su_t2, qu_t2 = self.taskM(su, qu, support_labels)
+        su_2, qu_2, su_t2, qu_t2 = self.taskM(su, qu, support_labels)    # TFE
         unique_labels = torch.unique(support_labels)
         su_pro = [
            torch.mean(torch.index_select(su_2, 0, extract_class_indices(support_labels, c)), dim=0)
