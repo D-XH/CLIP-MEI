@@ -1,10 +1,8 @@
-INFO: 'test_notv_sem-1mlp_task2'
+INFO: ''
 MODEL: 
-  NAME: 'test'
+  NAME: 'clipmei'
   BACKBONE: 'RN50'          # ["resnet18", "resnet34", "resnet50"]
   SEED: 6
-  USE_CLASSIFICATION: true
-  USE_CLASSIFICATION_VALUE: 1.5
 
 TRAIN:
   WAY: 5
@@ -19,18 +17,18 @@ TEST:
   ONLY_TEST: false
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 5000
-  TEST_MODEL_PATH: 'checkpoint/ssv2_otam/5shot/test/checkpoint_best.pt'
+  TEST_MODEL_PATH: 'checkpoint/ssv2_otam/5shot/clipmei/checkpoint_best.pt'
   CLASS_NAME: ['Approaching [something] with your camera', 'Digging [something] out of [something]', 'Dropping [something] next to [something]', 'Dropping [something] onto [something]', 'Failing to put [something] into [something] because [something] does not fit', 'Lifting up one end of [something] without letting it drop down', 'Picking [something] up', 'Poking a stack of [something] without the stack collapsing', 'Pouring [something] out of [something]', 'Pretending to open [something] without actually opening it', 'Pretending to put [something] behind [something]', 'Pretending to put [something] into [something]', 'Pretending to put [something] underneath [something]', 'Pretending to sprinkle air onto [something]', 'Pulling [something] from left to right', 'Pulling [something] out of [something]', 'Pushing [something] from right to left', 'Removing [something], revealing [something] behind', 'Showing [something] next to [something]', 'Showing that [something] is empty', 'Spilling [something] behind [something]', 'Taking [something] out of [something]', 'Throwing [something] in the air and letting it fall', 'Tipping [something] over']
 
 DATA:
   DATASET: 'ssv2'   # ["ssv2", 'ssv2_cmn', "kinetics", "hmdb", "ucf"]
-  DATA_DIR: '/home/zhangbin/tx/datasets/ssv2'
+  DATA_DIR: '/root/datasets/ssv2'
   SEQ_LEN: 8
   IMG_SIZE: 224
   NUM_WORKERS: 8
 
 CHECKPOINT:
-  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/5shot/test'
+  CHECKPOINT_DIR: 'checkpoint/ssv2_otam/5shot/clipmei'
   SAVE_FREQ: 75000
 
 SOLVER:

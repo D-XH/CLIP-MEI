@@ -64,7 +64,7 @@ def verify_checkpoint_dir(cfg):
             sys.exit()
     elif test_mode:
         if not os.path.isfile(cfg.TEST.TEST_MODEL_PATH):
-            print("Can't test. Checkpoint directory ({}) does not exist.".format(checkpoint_dir), flush=True)
+            print("Can't test. Checkpoint file ({}) does not exist.".format(checkpoint_dir), flush=True)
             sys.exit()
     else:
         if os.path.exists(checkpoint_dir):

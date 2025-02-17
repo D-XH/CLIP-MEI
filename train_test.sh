@@ -1,6 +1,6 @@
 #-------------------- UCF --------------------#
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
-#--cfg ./configs/test/ucf.yaml
+#--cfg ./configs/clipmei/ucf.yaml
 
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
 #--cfg ./configs/cpm2c/ucf.yaml
@@ -19,7 +19,7 @@
 
 #------------------ ssv2-CMN -----------------#
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
-#--cfg ./configs/test/ssv2_cmn.yaml
+#--cfg ./configs/clipmei/ssv2_cmn.yaml
 
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
 #--cfg ./configs/cpm2c/ssv2_cmn.yaml
@@ -38,7 +38,7 @@
 
 #----------------- ssv2-OTAM -----------------#
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
-#--cfg ./configs/test/ssv2_otam.yaml
+#--cfg ./configs/clipmei/ssv2_otam.yaml
 
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
 #--cfg ./configs/cpm2c/ssv2_otam.yaml
@@ -54,9 +54,9 @@
 
 #----------------- hmdb51 -----------------#
 CUDA_VISIBLE_DEVICES=0 python run/run.py \
---cfg ./configs/test/hmdb.yaml
+--cfg ./configs/clipmei/hmdb.yaml
 
 #----------------- k-cmn -----------------#
 #CUDA_VISIBLE_DEVICES=0 python run/run.py \
-#--cfg ./configs/test/k100.yaml
+#--cfg ./configs/clipmei/k100.yaml
 

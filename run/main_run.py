@@ -32,7 +32,7 @@ class Learner:
         #self.writer = SummaryWriter()
         mode = 'test' if cfg.TEST.ONLY_TEST else 'train'
         ######################################################################################
-        log_dir = './new_runs/'
+        log_dir = './runs/'
         if cfg.INFO == '':
             info = f"{cfg.MODEL.NAME}_{mode}_{cfg.DATA.DATASET}::{cfg.MODEL.BACKBONE}_{cfg.TRAIN.WAY}-{cfg.TRAIN.SHOT}_{cfg.TRAIN.QUERY_PER_CLASS}"
         else:
@@ -103,10 +103,8 @@ class Learner:
             from models.model_cpm2c import CLIP_CPMMC_FSAR as CNN
         elif self.cfg.MODEL.NAME == 'sten':
             from models.model_sten import CNN_OTAM_CLIPFSAR as CNN
-        elif self.cfg.MODEL.NAME == 'test':
-            from models.model_test import CNN as CNN
-        elif self.cfg.MODEL.NAME == 'raw':
-            from models.model_raw import CNN as CNN
+        elif self.cfg.MODEL.NAME == 'clipmei':
+            from models.model_clipmei import CNN as CNN
         model = CNN(self.cfg)
         model = model.to(self.device)
         if self.cfg.DEVICE.NUM_GPUS > 1:
@@ -299,6 +297,7 @@ class Learner:
         lmd = 0.1
         model_dict = {k: v.to(self.device) for k,v in model_dict.items()}
         target_logits = model_dict.get('logits')
+
         if self.cfg.MODEL.NAME == 'strm':
             # Target logits after applying query-distance-based similarity metric on patch-level enriched features
             target_logits_post_pat = model_dict['logits_post_pat']
@@ -315,6 +314,7 @@ class Learner:
             if mode == 'test':
                 del target_logits
                 del target_logits_post_pat
+
         elif self.cfg.MODEL.NAME == 'molo':
             if mode == 'test':
                 task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH
@@ -329,11 +329,13 @@ class Learner:
                                     + self.cfg.MODEL.USE_CONTRASTIVE_COFF * self.loss(model_dict["logits_q2s_motion"], target_labels, self.device) /self.cfg.TRAIN.TASKS_PER_BATCH \
                                         + self.cfg.MODEL.RECONS_COFF*model_dict["loss_recons"]
                 task_accuracy = self.accuracy_fn(target_logits, target_labels)
+
         elif self.cfg.MODEL.NAME == 'clipfsar':
             task_loss =  (self.loss(target_logits, target_labels, self.device) + self.cfg.MODEL.USE_CLASSIFICATION_VALUE * self.loss(model_dict["class_logits"], torch.cat([real_support_labels, real_target_labels], 0).long(), self.device)) /self.cfg.TRAIN.TASKS_PER_BATCH
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
             if mode == 'test':
                 del target_logits
+
         elif self.cfg.MODEL.NAME == 'cpm2c':
             lambdas = self.cfg.MODEL.LMD
             target_logits_total = lambdas[1] * model_dict['logits_local'] + lambdas[2] * model_dict['logits_global']
@@ -345,18 +347,20 @@ class Learner:
                 del target_logits
             else:
                 task_loss += 0.001 * model_dict['target_consist_distance'] #+ 0.001 * model_dict['text_distance']   
-        elif self.cfg.MODEL.NAME == 'test':
-            task_loss = self.loss(model_dict['logits'], target_labels.long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH \
-                        + 0.001 * model_dict['dists'] \
-                        #+ 0.5 * self.loss(model_dict['class_logits'], torch.cat([real_support_labels, real_target_labels], 0).long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH 
-            task_accuracy = self.accuracy_fn(model_dict['logits'], target_labels)
-            if mode == 'test':
-                del target_logits
+
         elif self.cfg.MODEL.NAME == 'soap':
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH + model_dict['t_loss']
             task_accuracy = self.accuracy_fn(target_logits, target_labels)
             if mode == 'test':
                 del target_logits
+
+        elif self.cfg.MODEL.NAME == 'clipmei':
+            task_loss = self.loss(model_dict['logits'], target_labels.long(), "cuda") / self.cfg.TRAIN.TASKS_PER_BATCH \
+                        + 0.001 * model_dict['dists']
+            task_accuracy = self.accuracy_fn(model_dict['logits'], target_labels)
+            if mode == 'test':
+                del target_logits
+
         else:
             task_loss = self.loss(target_logits, target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH \
                             #+ self.loss(model_dict['mo_logits'], target_labels, self.device) / self.cfg.TRAIN.TASKS_PER_BATCH 
