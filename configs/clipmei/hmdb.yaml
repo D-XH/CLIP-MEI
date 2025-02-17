@@ -19,7 +19,7 @@ TEST:
   QUERY_PER_CLASS: 1
   TEST_EPISODES: 10000
   TEST_MODEL_PATH: 'checkpoint/hmdb/1shot/clipmei/checkpoint_best.pt'
-  #TEST_MODEL_PATH: 'checkpoint_best.pt'
+  #TEST_MODEL_PATH: 'test_ckp/clipmei/hmdb_1shot_76-42.pt'
   CLASS_NAME: ['fencing', 'kick', 'kick ball', 'pick', 'pour', 'pushup', 'run', 'sit', 'smoke', 'talk']
 
 DATA:
