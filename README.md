@@ -1,6 +1,7 @@
 # CLIP-MEI: Exploit more effective information for few-shot action recognition
 Official Pytorch Implementation of CLIP-MEI
 > Exploit more effective information for few-shot action recognition (CLIP-MEI)
+> 
 > Xuanhan Deng
 
 > Abstract:
