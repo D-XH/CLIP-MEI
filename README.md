@@ -14,7 +14,7 @@ First, you need to download the datasets from their original source (If you have
 * [UCF101](https://www.crcv.ucf.edu/data/UCF101.php)
 * [HMDB51](https://serre-lab.clps.brown.edu/resource/hmdb-a-large-human-motion-database/#Downloads)
 
-Then, prepare data according to the [splits]() we provide.
+Then, prepare data according to the [splits](https://github.com/D-XH/CLIP-MEI/tree/main/splits) we provide.
 Alternatively, you can directly utilize the preprocessed [dataset](https://openxlab.org.cn/datasets/DENG-H/FSAR/tree/main) we provide.
 
 # Train and test
