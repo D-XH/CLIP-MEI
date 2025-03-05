@@ -8,6 +8,14 @@ Official Pytorch Implementation of CLIP-MEI
 
 This code is based on [TRX](https://github.com/tobyperrett/trx) codebase.
 
+# Results
+| - | 1-shot | 3-shot | 5-shot |
+| ---- | ---- | ---- | ---- |
+| HMDB51 | 76.4 | 83.0 | 84.9 |
+| SSv2-FULL | 61.6 | 65.9 | 97.5 |
+| UCF101 | 93.7 | 97.0 | 84.9 |
+| Kinetics | 90.1 | 92.9 | 93.6 |
+
 # Data preparation
 First, you need to download the datasets from their original source (If you have already downloaded, please ignore this step):
 * [SSV2](https://20bn.com/datasets/something-something#download)
