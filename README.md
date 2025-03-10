@@ -50,5 +50,7 @@ We provide the checkpoint for all the results presented in our paper.
 # Citation
 If you find this code useful, please cite our paper.
 ```
+The paper is under submission. If this repository has been helpful to you, I hope you can cite my article.
+论文正在投稿中。如果对你有所帮助，等论文中了，记得引用一下我的论文 >.<
 ...
 ```
