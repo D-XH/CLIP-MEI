@@ -79,6 +79,7 @@ class Learner:
         # self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.cfg.SOLVER.LR_SCH, gamma=0.9)
         
         self.start_iteration = 0
+        self.best_acc = 0.0
         if self.cfg.CHECKPOINT.RESUME_FROM_CHECKPOINT or self.cfg.TEST.ONLY_TEST:
             self.load_checkpoint()
         self.optimizer.step()
@@ -161,7 +162,7 @@ class Learner:
             print('Evaluation Done with', self.test_episodes, ' iteration')
         else:
             print('Conduct Training:')
-            best_accuracies = 0.0
+            best_accuracies = self.best_acc
             train_accuracies = []
             losses = []
             total_iterations = self.train_episodes
@@ -198,7 +199,7 @@ class Learner:
 
                 if ((iteration + 1) % self.cfg.CHECKPOINT.SAVE_FREQ == 0) and (iteration + 1) != total_iterations:
                     #self.save_checkpoint(iteration + 1)
-                    self.save_checkpoint(iteration + 1, 'last')
+                    self.save_checkpoint(iteration + 1, 'last', accuracy_dict[self.cfg.DATA.DATASET]["accuracy"])
 
 
                 if ((iteration + 1) % self.cfg.TRAIN.VAL_FREQ == 0) and (iteration + 1) != total_iterations:
@@ -206,7 +207,7 @@ class Learner:
                     if accuracy_dict[self.cfg.DATA.DATASET]["accuracy"] > best_accuracies:
                         best_accuracies = accuracy_dict[self.cfg.DATA.DATASET]["accuracy"]
                         print('Save best checkpoint in {} iter'.format(iteration + 1))
-                        self.save_checkpoint(iteration + 1, 'best')
+                        self.save_checkpoint(iteration + 1, 'best', best_accuracies)
 
                     self.writer.add_scalar('loss/Test_loss', accuracy_dict[self.cfg.DATA.DATASET]["loss"], (iteration + 1) // self.cfg.TRAIN.VAL_FREQ)
                     self.writer.add_scalar('acc/Test_acc', accuracy_dict[self.cfg.DATA.DATASET]["accuracy"], (iteration + 1) // self.cfg.TRAIN.VAL_FREQ)
@@ -370,11 +371,12 @@ class Learner:
         
         return task_loss, task_accuracy
 
-    def save_checkpoint(self, iteration, stat):
+    def save_checkpoint(self, iteration, stat, acc):
         d = {'iteration': iteration,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler': self.scheduler.state_dict()}
+            'scheduler': self.scheduler.state_dict(),
+            'acc': acc}
 
         torch.save(d, os.path.join(self.checkpoint_dir, 'checkpoint_{}.pt'.format(stat)))
         #torch.save(d, os.path.join(self.checkpoint_dir, 'checkpoint.pt'))
@@ -390,6 +392,7 @@ class Learner:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
+        self.best_acc = checkpoint['acc']
 
 if __name__ == "__main__":
     import warnings
