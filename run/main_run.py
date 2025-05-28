@@ -8,6 +8,7 @@ from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggr
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
+from torch import autocast, GradScaler
 def getWIFN(seed):
     def worker_init_fn(worker_id):
         worker_seed = seed + worker_id
@@ -43,9 +44,9 @@ class Learner:
             self.writer = SummaryWriter(log_dir=os.path.join(log_dir, f"{info}=>{datetime.now().strftime('%Y|%m|%d-%H:%M:%S')}"),flush_secs = 30)
         ######################################################################################
         
-        #gpu_device = 'cuda:0'
-        gpu_device = cfg.DEVICE.DEVICE
-        self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
+        #str_device = 'cuda:0'
+        self.str_device = cfg.DEVICE.DEVICE
+        self.device = torch.device(self.str_device if torch.cuda.is_available() else 'cpu')
         torch.backends.cudnn.benchmark = True
         
         print("Random Seed: ", cfg.MODEL.SEED)
@@ -59,6 +60,9 @@ class Learner:
         self.model = self.init_model()
         self.vd = VideoDataset(self.cfg)
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS, shuffle=False, worker_init_fn=getWIFN(cfg.MODEL.SEED), pin_memory=True)
+
+        self.use_amp = self.cfg.USE_AMP
+        self.scaler = GradScaler(self.str_device, enabled=self.use_amp)  # USE_AMP：Mixed Precision
         
         self.loss = loss
         self.accuracy_fn = aggregate_accuracy
@@ -180,7 +184,10 @@ class Learner:
 
                 # optimize
                 if ((iteration + 1) % self.cfg.TRAIN.TASKS_PER_BATCH == 0) or (iteration == (total_iterations - 1)):
-                    self.optimizer.step()
+                    # self.optimizer.step()
+                    # self.optimizer.zero_grad()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                     self.optimizer.zero_grad()
                 self.scheduler.step()
 
@@ -218,9 +225,12 @@ class Learner:
 
     def train_task(self, task_dict):
         input = self.prepare_task(task_dict)
-        model_dict = self.model(input)
-        task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'])
-        task_loss.backward(retain_graph=False)
+
+        with autocast(device_type=self.cfg.DEVICE.DEVICE, dtype=torch.bfloat16, enabled=self.use_amp):
+            model_dict = self.model(input)
+            task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'])
+        # task_loss.backward(retain_graph=False)
+        self.scaler.scale(task_loss).backward(retain_graph=False)
 
         return task_loss, task_acc
 
@@ -241,9 +251,10 @@ class Learner:
 
                     input = self.prepare_task(task_dict)
                     # context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
-                    model_dict = self.model(input)
 
-                    task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'], mode='test')
+                    with autocast(device_type=self.cfg.DEVICE.DEVICE, dtype=torch.bfloat16, enabled=self.use_amp):
+                        model_dict = self.model(input)
+                        task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'], mode='test')
 
                     losses.append(task_loss.item())
                     accuracies.append(task_acc.item())
