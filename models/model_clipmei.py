@@ -47,9 +47,9 @@ class CNN(nn.Module):
         self.motion_conv1 = nn.Conv1d(self.mid_dim // self.factor, self.mid_dim // self.factor, kernel_size=3, padding=1,groups=1)
         self.motion_conv2 = nn.Conv1d(self.mid_dim // self.factor, self.mid_dim // self.factor, kernel_size=3, padding=1, groups=1)
 
-        self.token_tr = token_trans()
-        self.context1 = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2)
-        self.context2 = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2)
+        self.token_tr = token_trans(self.mid_dim)
+        self.context1 = Transformer_v1(dim=self.mid_dim, heads=8, dim_head_k=256, dropout_atte=0.2)
+        self.context2 = Transformer_v1(dim=self.mid_dim, heads=8, dim_head_k=256, dropout_atte=0.2)
         self.mo_alpha1 = nn.Parameter(torch.rand(1), requires_grad=True)
         nn.init.constant_(self.mo_alpha1, 1)
         
@@ -278,10 +278,10 @@ class CNN(nn.Module):
         return cum_dists
     
 class token_trans(nn.Module):
-    def __init__(self,):
+    def __init__(self, dim):
         super().__init__()
         #self.trans = Transformer_v1(dim=1024, heads=8, dim_head_k=256, dropout_atte=0.2, depth=1)
-        self.mlp = FeedForward(1024, 2048, dropout=0.05)
+        self.mlp = FeedForward(dim, 2048, dropout=0.05)
         #self.mlp2 = FeedForward(1024, 2048, dropout=0.05)
 
     def forward(self, t, qu):
