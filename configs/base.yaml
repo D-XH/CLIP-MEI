@@ -1,5 +1,6 @@
 INFO: ''
 DEBUG: false
+USE_AMP: false
 MODEL:
   NAME: ''
   BACKBONE: 'resnet50'
