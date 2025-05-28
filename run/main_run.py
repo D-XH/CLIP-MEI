@@ -8,7 +8,14 @@ from utils.utils import print_and_log, get_log_files, TestAccuracies, loss, aggr
 from torch.optim import lr_scheduler
 from video_reader import VideoDataset
 from torch.utils.tensorboard import SummaryWriter
+
+# torch version >= 2.3
 from torch import autocast, GradScaler
+
+# 1.6 <= torch version < 2.3
+# from torch import autocast
+# from torch.cuda.amp import GradScaler
+
 def getWIFN(seed):
     def worker_init_fn(worker_id):
         worker_seed = seed + worker_id
@@ -63,6 +70,9 @@ class Learner:
 
         self.use_amp = self.cfg.USE_AMP
         self.scaler = GradScaler(self.str_device, enabled=self.use_amp)  # USE_AMP：Mixed Precision
+
+        # torch version < 2.3
+        # self.scaler = GradScaler(enabled=self.use_amp)
         
         self.loss = loss
         self.accuracy_fn = aggregate_accuracy
