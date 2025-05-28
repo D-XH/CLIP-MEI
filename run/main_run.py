@@ -392,7 +392,8 @@ class Learner:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
-        self.best_acc = checkpoint['acc']
+        if 'acc' in checkpoint:
+            self.best_acc = checkpoint['acc']
 
 if __name__ == "__main__":
     import warnings
