@@ -236,7 +236,7 @@ class Learner:
     def train_task(self, task_dict):
         input = self.prepare_task(task_dict)
 
-        with autocast(device_type=self.cfg.DEVICE.DEVICE, dtype=torch.bfloat16, enabled=self.use_amp):
+        with autocast(device_type=self.str_device, dtype=torch.bfloat16, enabled=self.use_amp):
             model_dict = self.model(input)
             task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'])
         # task_loss.backward(retain_graph=False)
@@ -262,7 +262,7 @@ class Learner:
                     input = self.prepare_task(task_dict)
                     # context_images, target_images, context_labels, target_labels, real_target_labels, batch_class_list, real_support_labels = self.prepare_task(task_dict)
 
-                    with autocast(device_type=self.cfg.DEVICE.DEVICE, dtype=torch.bfloat16, enabled=self.use_amp):
+                    with autocast(device_type=self.str_device, dtype=torch.bfloat16, enabled=self.use_amp):
                         model_dict = self.model(input)
                         task_loss, task_acc = self._loss_and_acc(model_dict, input['target_labels'], input['real_target_labels'], input['batch_class_list'], input['real_support_labels'], mode='test')
 
