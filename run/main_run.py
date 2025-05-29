@@ -69,6 +69,8 @@ class Learner:
         self.video_loader = torch.utils.data.DataLoader(self.vd, batch_size=1, num_workers=self.cfg.DATA.NUM_WORKERS, shuffle=False, worker_init_fn=getWIFN(cfg.MODEL.SEED), pin_memory=True)
 
         self.use_amp = self.cfg.USE_AMP
+
+        # torch version >= 2.3
         self.scaler = GradScaler(self.str_device, enabled=self.use_amp)  # USE_AMP：Mixed Precision
 
         # torch version < 2.3
