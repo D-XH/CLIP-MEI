@@ -1,7 +1,8 @@
 INFO: ''
+USE_AMP: true
 MODEL: 
   NAME: 'clipmei'
-  BACKBONE: 'RN50'          # ["resnet18", "resnet34", "resnet50"]
+  BACKBONE: 'ViT-B/16'          # ["RN50", "ViT-B/16"]
   SEED: 6
 
 TRAIN:
