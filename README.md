@@ -1,4 +1,4 @@
-# CLIP-MEI: Exploit more effective information for few-shot action recognition
+# CLIP-MEI: Exploit more effective information for few-shot action recognition (KBS)
 Official Pytorch Implementation of CLIP-MEI
 > Exploit more effective information for few-shot action recognition (CLIP-MEI)
 > 
@@ -7,6 +7,8 @@ Official Pytorch Implementation of CLIP-MEI
 > Abstract: Few-shot action recognition (FSAR) aims to address the challenge of limited labeled data, yet most existing methods struggle to effectively tackle the insufficient visual information arising from scarce labeled samples. So, this paper proposes the CLIP-MEI framework, which enhances model representation through multi-modal feature fusion and latent information mining. Specifically, we build a CLIP-based prototype matching framework and design three core modules: 1) Query-Specific Semantic Information Augmentation (QSA), which generates adaptive semantic embeddings by integrating support set label semantics with query visual features to mitigate semantic disparities between support and query sets; 2) Task-based Feature Enhancement (TFE), which optimizes feature representations by exploiting latent relationships between support and query sets within the same task; and 3) Motion Information Compensation (MIC), which extracts highly invariant motion features by aligning shallow and deep motion representations. Extensive results demonstrate that CLIP-MEI establishes new performance records across diverse benchmark datasets, notably achieving leading results on HMDB51. For example, it attains a 1-shot accuracy of 76.4\% on HMDB51, outperforming baselines by 10.1\%. The implementation can be accessed via [GitHub](https://github.com/D-XH/CLIP-MEI.git)
 
 This code is based on [TRX](https://github.com/tobyperrett/trx) codebase.
+
+This paper has been accepted by Knowledge based systems. ([https://doi.org/10.1016/j.knosys.2025.113965](https://doi.org/10.1016/j.knosys.2025.113965))
 
 # Results
 | - | 1-shot | 3-shot | 5-shot |
@@ -50,7 +52,7 @@ We provide the checkpoint for all the results presented in our paper.
 # Citation
 If you find this code useful, please cite our paper.
 ```
-The paper is under submission. If this repository has been helpful to you, I hope you can cite my article and star this repository.
-论文正在投稿中。如果对你有所帮助，可以star这个仓库，等论文中了，记得引用一下我的论文 >.<
+If this repository has been helpful to you, I hope you can cite my article and star this repository.
+
 ...
 ```
