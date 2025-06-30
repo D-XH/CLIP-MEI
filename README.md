@@ -52,7 +52,12 @@ We provide the checkpoint for all the results presented in our paper.
 # Citation
 If you find this code useful, please cite our paper.
 ```
-If this repository has been helpful to you, I hope you can cite my article and star this repository.
-
-...
+@article{deng2025clip,
+  title={CLIP-MEI: Exploit more effective information for few-shot action recognition},
+  author={Deng, XuanHan and Yang, WenZhu and Zhao, XinBo and Zhou, Tong and Deng, Xin},
+  journal={Knowledge-Based Systems},
+  pages={113965},
+  year={2025},
+  publisher={Elsevier}
+}
 ```
