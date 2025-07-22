@@ -11,12 +11,22 @@ This code is based on [TRX](https://github.com/tobyperrett/trx) codebase.
 This paper has been accepted by Knowledge based systems. ([https://doi.org/10.1016/j.knosys.2025.113965](https://doi.org/10.1016/j.knosys.2025.113965))
 
 # Results
+
+## CLIP-RN50
 | - | 1-shot | 3-shot | 5-shot |
 | ---- | ---- | ---- | ---- |
 | HMDB51 | 76.4 | 83.0 | 84.9 |
 | SSv2-FULL | 61.6 | 65.9 | 68.5 |
 | UCF101 | 93.7 | 97.0 | 97.5 |
 | Kinetics | 90.1 | 92.9 | 93.6 |
+
+## CLIP-VIT
+| - | 1-shot | 3-shot | 5-shot |
+| ---- | ---- | ---- | ---- |
+| HMDB51 | 75.9 | 85.9 | 88.5 |
+| SSv2-FULL | 67.8 | 76.6 | 79.8 |
+| UCF101 | 94.9 | 98.2 | 98.9 |
+| Kinetics | 87.7 | 95.3 | 96.0 |
 
 # Data preparation
 First, you need to download the datasets from their original source (If you have already downloaded, please ignore this step):
